@@ -1,0 +1,13 @@
+services:
+  prospection:
+    build: .
+    restart: unless-stopped
+    shm_size: 1gb
+    mem_limit: 4500m      # 22/11 : chaque service a son plafond, pour ne plus faire tuer les autres
+    memswap_limit: 6g
+    volumes:
+      - ./data:/data
+      - ./.env-calls:/app/.env-calls:ro
+      - ./state:/app/state
+    ports:
+      - "127.0.0.1:6080:6080"   # remote view of the Chromes, reachable only through an SSH tunnel

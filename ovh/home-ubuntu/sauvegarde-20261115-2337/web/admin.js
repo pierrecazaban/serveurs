@@ -1,0 +1,1470 @@
+// Console d'administration Smart Mail : toutes les sessions des ambassadeurs, en direct.
+// Tout ce qui vient du serveur (noms, adresses, messages) est inséré en texte, jamais en HTML.
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var CLE = "smartmail", PAS = 5000;
+  var NOMS = { annuaire: "Recherche", tri: "Tri", envoi: "Envoi" };
+  var TYPES = ["annuaire", "tri", "envoi"];
+  var VUES = ["ecrans", "ensemble", "sessions", "activite", "membres"];
+  var etat = {
+    jeton: "", vue: "ecrans", t: null, ecranId: null, tVu: 0, d: null, detailId: null, depuisListe: false, focusAvant: null,
+    alertesPar: {}, filtre: "toutes", cherche: "", fil: [], suite: null, problemes: false,
+    majOk: 0, echec: false, decalage: 0, minuterie: null, chiffres: false
+  };
+
+  // ------------------------------------------------------------------ icônes (dessins fixes)
+  var T = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">';
+  var ICONES = {
+    ensemble: T + '<rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg>',
+    sessions: T + '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
+    activite: T + '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg>',
+    membres: T + '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.3"/><path d="M5.8 16.2c.5-1.5 1.7-2.3 3.2-2.3s2.7.8 3.2 2.3"/><path d="M15 10h3.5M15 13.5h3.5"/></svg>',
+    rafraichir: T + '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20.5V16h-4.5"/></svg>',
+    retour: T + '<path d="M15 5l-7 7 7 7"/></svg>',
+    suite: T + '<path d="m9 5 7 7-7 7"/></svg>',
+    point: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>',
+    horloge: T + '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    erreur: T + '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>',
+    coche: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    tiret: T + '<path d="M7 12h10"/></svg>',
+    critique: T + '<path d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2L8.2 3Z"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>',
+    attention: T + '<path d="M12 3.5 2.5 20h19L12 3.5Z"/><path d="M12 10v4.5M12 17.2v.01"/></svg>',
+    info: T + '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.01"/></svg>',
+    succes: T + '<circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.8 2.8L16.2 9.6"/></svg>',
+    coupee: T + '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></svg>',
+    appareil: T + '<rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M11 18.5h2"/></svg>',
+    calendrier: T + '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 13v3l2 1.2"/></svg>',
+    ecrans: T + '<rect x="2.5" y="4" width="13" height="10" rx="1.6"/><path d="M6.5 17.5h5"/><rect x="16.5" y="7" width="5" height="12" rx="1.3"/></svg>',
+    patrouille: T + '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5"/><path d="M20 3.5v5h-5"/><path d="M10 9.2v5.6l4.6-2.8z" fill="currentColor"/></svg>',
+    sortir: T + '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+    lettre: T + '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>'
+  };
+  function ic(nom, classe) {
+    var t = document.createElement("template");
+    t.innerHTML = ICONES[nom] || ICONES.info;
+    var s = t.content.firstChild;
+    s.setAttribute("aria-hidden", "true");
+    s.setAttribute("focusable", "false");
+    if (classe) s.setAttribute("class", classe);
+    return s;
+  }
+  document.querySelectorAll("[data-icone]").forEach(function (e) { e.appendChild(ic(e.getAttribute("data-icone"))); });
+
+  // ------------------------------------------------------------------ formats
+  var FN = new Intl.NumberFormat("fr-FR"), FC = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
+  function nb(v) { v = Number(v) || 0; return Math.abs(v) >= 100000 ? FC.format(v) : FN.format(v); }
+  function plein(v) { return FN.format(Number(v) || 0); }
+  function pluriel(n, un, plusieurs) { return plein(n) + " " + (Number(n) > 1 ? plusieurs : un); }
+  function dollars(v) { return (Number(v) || 0).toLocaleString("fr-FR", { style: "currency", currency: "USD" }); }
+  function taille(v) {
+    v = Number(v) || 0;
+    return v >= 1e9 ? (v / 1e9).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Go" : Math.max(1, Math.round(v / 1e6)) + " Mo";
+  }
+  function secondes(ts) {
+    if (ts == null || ts === "") return 0;
+    return typeof ts === "number" ? ts : (Date.parse(ts) / 1000 || 0);
+  }
+  function maintenant() { return Date.now() / 1000 + etat.decalage; }
+  function deux(n) { return (n < 10 ? "0" : "") + n; }
+  function duree(s) {
+    s = Math.max(0, Math.round(s));
+    var j = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+    return j ? j + " j " + h + " h" : h ? h + " h " + deux(m) : Math.max(1, m) + " min";
+  }
+  function ilya(ts) {
+    var t = secondes(ts);
+    if (!t) return "";
+    var s = Math.max(0, maintenant() - t);
+    if (s < 50) return "à l'instant";
+    if (s < 7 * 86400) return "il y a " + duree(s);
+    return "le " + new Date(t * 1000).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  }
+  function heure(ts) { return new Date(secondes(ts) * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+  function cleJour(ts) { var d = new Date(secondes(ts) * 1000); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+  function libelleJour(ts) {
+    var auj = maintenant(), cle = cleJour(ts);
+    if (cle === cleJour(auj)) return "Aujourd'hui";
+    if (cle === cleJour(auj - 86400)) return "Hier";
+    return new Date(secondes(ts) * 1000).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  }
+  function quand(ts) { return cleJour(ts) === cleJour(maintenant()) ? heure(ts) : new Date(secondes(ts) * 1000).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }); }
+  function jourIso(iso, options) { var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("fr-FR", options); }
+  function initiales(f) {
+    var mots = String(f.email || f.nom || "?").split("@")[0].split(/[._\-\s]+/).filter(Boolean);
+    var a = (mots[0] || "?").charAt(0), b = mots[1] ? mots[1].charAt(0) : (mots[0] || "").charAt(1);
+    return (a + b).toUpperCase();
+  }
+  function nomDe(f) { return f.email || f.nom || ("Compte " + f.id); }
+
+  // ------------------------------------------------------------------ éléments
+  function el(tag, classe, texte) {
+    var e = document.createElement(tag);
+    if (classe) e.className = classe;
+    if (texte != null) e.textContent = texte;
+    return e;
+  }
+  function sr(texte) { return el("span", "sr", texte); }
+  function bouton(texte, classes, action) {
+    var b = el("button", "btn " + classes, texte);
+    b.type = "button";
+    b.onclick = function () { action(b); };
+    return b;
+  }
+  function carte(titre, aside) {
+    var c = el("section", "carte"), t = el("div", "carte-tete");
+    t.appendChild(el("h2", null, titre));
+    if (aside) t.appendChild(el("span", "aide", aside));
+    c.appendChild(t);
+    return c;
+  }
+  function paire(dl, k, v) { dl.appendChild(el("dt", null, k)); dl.appendChild(el("dd", null, v)); }
+  function saisieEnCours(zone) {
+    var a = document.activeElement;
+    return !!(a && zone.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName));
+  }
+
+  // ------------------------------------------------------------------ serveur
+  function api(chemin, corps, methode) {
+    var h = { "Content-Type": "application/json" };
+    if (etat.jeton) h.Authorization = "Bearer " + etat.jeton;
+    return fetch(BASE + chemin, { method: methode || (corps ? "POST" : "GET"), headers: h, cache: "no-store", credentials: "same-origin",
+                           body: corps ? JSON.stringify(corps) : undefined })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) {
+            var e = new Error(j && typeof j.detail === "string" ? j.detail : "Le serveur a refusé (" + r.status + ").");
+            e.statut = r.status;
+            throw e;
+          }
+          return j;
+        });
+      });
+  }
+  function lireJeton() { try { return (JSON.parse(localStorage.getItem(CLE) || "{}").code) || ""; } catch (e) { return ""; } }
+  function ecrireJeton(code) {
+    try { var o = JSON.parse(localStorage.getItem(CLE) || "{}"); o.code = code || ""; localStorage.setItem(CLE, JSON.stringify(o)); } catch (e) {}
+  }
+  // La même session que l'application : jeton de cet appareil, sinon le cookie de secours.
+  async function retrouverJeton() {
+    etat.jeton = lireJeton();
+    if (etat.jeton) return true;
+    try {
+      var r = await api("/v1/session/reprendre", {});
+      if (r.code) { etat.jeton = r.code; ecrireJeton(r.code); return true; }
+    } catch (e) {}
+    return false;
+  }
+  function porte(titre, texte, lien, libelle) {
+    $("porte-titre").textContent = titre;
+    $("porte-texte").textContent = texte;
+    $("porte-lien").href = lien;
+    $("porte-lien").textContent = libelle;
+    $("porte").hidden = false;
+  }
+  // Vrai : la console ne peut pas continuer (la porte est affichée).
+  async function bloquante(e) {
+    if (e.statut === 401) {
+      ecrireJeton(""); etat.jeton = "";
+      if (await retrouverJeton()) return false;
+      porte("Session expirée", "Reconnectez-vous à Smart Mail avec votre compte administrateur : la console s'ouvre ensuite toute seule.", BASE + "/#admin", "Se connecter");
+      return true;
+    }
+    if (e.statut === 403) {
+      porte("Réservé aux administrateurs", "Cette console montre les sessions de tous les ambassadeurs : elle est réservée aux administrateurs.", BASE + "/", "Retour à Smart Mail");
+      return true;
+    }
+    return false;
+  }
+
+  // ------------------------------------------------------------------ en direct
+  function majDirect() {
+    var d = $("direct"), txt = $("direct-texte");
+    if (!etat.majOk) {
+      d.className = "direct " + (etat.echec ? "hors" : "retard");
+      txt.textContent = etat.echec ? "Hors ligne" : "Connexion…";
+      return;
+    }
+    var s = Math.max(0, Math.round(Date.now() / 1000 - etat.majOk));
+    var age = s < 60 ? s + " s" : duree(s);
+    if (etat.echec) { d.className = "direct hors"; txt.textContent = "Hors ligne · " + age; return; }
+    d.className = "direct" + (s > 15 ? " retard" : "");
+    txt.textContent = s <= 15 ? "En direct" : "Mis à jour il y a " + age;
+  }
+  setInterval(majDirect, 1000);
+
+  var enTour = false, encore = false;
+  async function tour(force) {
+    if (enTour) { encore = true; return; }
+    enTour = true;
+    clearTimeout(etat.minuterie);
+    if (document.visibilityState !== "visible" && !force) { enTour = false; return; }
+    $("rafraichir").classList.add("tourne");
+    var arret = false;
+    try {
+      if (etat.detailId != null) await chargerDetail();
+      if (etat.detailId == null || force || !etat.t || Date.now() / 1000 - etat.tVu > 15) await chargerTableau();
+      if (etat.vue === "activite" && etat.detailId == null) await chargerFil(etat.fil.length ? "maj" : "debut");
+      etat.majOk = Date.now() / 1000;
+      etat.echec = false;
+    } catch (e) {
+      arret = await bloquante(e);
+      if (!arret) etat.echec = true;
+    }
+    $("rafraichir").classList.remove("tourne");
+    majDirect();
+    enTour = false;
+    if (arret) return;
+    if (encore) { encore = false; return tour(true); }
+    if (document.visibilityState === "visible") etat.minuterie = setTimeout(tour, PAS);
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && etat.jeton) tour(); });
+  window.addEventListener("online", function () { if (etat.jeton) tour(true); });
+  $("rafraichir").onclick = function () { tour(true); };
+
+  // ------------------------------------------------------------------ états des travaux
+  var STATUTS = {
+    en_cours: ["En cours", "point"], attente: ["En attente", "horloge"], pause: ["En pause", "pause"], erreur: ["Arrêté", "erreur"],
+    fini: ["Terminé", "coche"], aucun: ["Pas lancé", "tiret"], bloque: ["N'avance plus", "attention"], programme: ["Programmé", "horloge"]
+  };
+  var TONS = { en_cours: "", attente: "neutre", pause: "attention", bloque: "attention", erreur: "critique", fini: "ok", aucun: "neutre", programme: "neutre" };
+  var NIVEAUX = { critique: "Critique", attention: "À surveiller", info: "Info", succes: "Réussi" };
+  var ICONE_NIVEAU = { critique: "critique", attention: "attention", info: "info", succes: "succes" };
+  var ELEVES = { envoye: "Reçu", verifier: "À vérifier", deja: "Déjà contacté", nondistribue: "Non distribué" };
+
+  function statutVu(e) {
+    if (!e || !e.statut) return "aucun";
+    if (e.actif && e.immobile) return "bloque";
+    if (e.statut === "attente" && (e.progression || {}).programme) return "programme";
+    if (e.statut === "en_cours" && !e.actif) return "attente";
+    if (e.statut === "fini" && /pause/i.test(e.message || "")) return "pause";
+    return STATUTS[e.statut] ? e.statut : "aucun";
+  }
+  function puceStatut(e) {
+    var s = statutVu(e), p = el("span", "etat " + s);
+    p.appendChild(ic(STATUTS[s][1]));
+    p.appendChild(document.createTextNode(STATUTS[s][0]));
+    return p;
+  }
+  function avancement(ty, e) {
+    var p = (e && e.progression) || {};
+    if (ty === "annuaire") {
+      if (p.trouves || (p.objectif && !p.extraits)) {
+        return { fait: p.trouves || 0, total: p.objectif || 0, texte: plein(p.trouves || 0) + " / " + plein(p.objectif || 0) + " élèves" };
+      }
+      return p.extraits ? { fait: null, texte: plein(p.extraits) + " contacts extraits" } : null;
+    }
+    if (ty === "tri") return p.total ? { fait: p.tries || 0, total: p.total, texte: plein(p.tries || 0) + " / " + plein(p.total) + " triés" } : null;
+    return p.total ? { fait: p.envoyes || 0, total: p.total, texte: plein(p.envoyes || 0) + " / " + plein(p.total) + " envoyés" } : null;
+  }
+  function infoPack(e) {
+    var k = ((e && e.progression) || {}).pack;
+    if (!k || !e.actif) return "";
+    return k.prochain ? "prochain pack à " + heure(k.prochain) : "pack " + plein(k.dans_pack || 0) + " / " + plein(k.taille);
+  }
+  function piste(fait, total, ton, fine, libelle) {
+    var d = el("div", "piste" + (fine ? " fine" : "") + (ton ? " " + ton : ""));
+    var pct = total > 0 ? Math.max(0, Math.min(100, fait / total * 100)) : 0;
+    var r = el("span");
+    r.style.width = pct.toFixed(1) + "%";
+    d.appendChild(r);
+    d.setAttribute("role", "progressbar");
+    d.setAttribute("aria-valuemin", "0");
+    d.setAttribute("aria-valuemax", String(Math.round(total) || 0));
+    d.setAttribute("aria-valuenow", String(Math.round(fait) || 0));
+    if (libelle) d.setAttribute("aria-label", libelle);
+    return d;
+  }
+  function pastilleBoite(s) {
+    var nom = s && s.messagerie === "gmail" ? "Gmail" : "Outlook", ok = !!(s && s.connecte);
+    var p = el("span", "boite " + (ok ? "connectee" : "coupee"));
+    p.appendChild(ic(ok ? "succes" : "coupee"));
+    p.appendChild(document.createTextNode(ok ? nom : "Pas de session"));
+    p.title = ok ? "Session " + nom + " active sur le serveur" : "Aucune session de messagerie : il doit se reconnecter";
+    return p;
+  }
+  function niveauMembre(f) {
+    var a = etat.alertesPar[f.id] || [];
+    return a.some(function (x) { return x.niveau === "critique"; }) ? "critique" : a.some(function (x) { return x.niveau === "attention"; }) ? "attention" : "";
+  }
+  function actifs(f) { return TYPES.filter(function (ty) { return f.travaux[ty] && f.travaux[ty].actif; }).length; }
+
+  function ligneAlerte(a) {
+    var lien = a.membre != null, b = el(lien ? "a" : "div", "alerte");
+    if (lien) b.href = "#session/" + a.membre;
+    b.appendChild(ic(ICONE_NIVEAU[a.niveau] || "info", "niv-" + a.niveau));
+    var tx = el("span", "texte");
+    tx.appendChild(sr((NIVEAUX[a.niveau] || "Info") + " : "));
+    tx.appendChild(document.createTextNode(a.texte));
+    b.appendChild(tx);
+    if (lien) b.appendChild(ic("suite", "suite"));
+    var li = el("li");
+    li.appendChild(b);
+    return li;
+  }
+
+  // ------------------------------------------------------------------ tableau (vue d'ensemble, sessions, membres)
+  async function chargerTableau() {
+    var t = await api("/v1/admin/tableau");
+    etat.t = t;
+    api("/v1/admin/porte").then(function (p) {  // le code d'accès du jour à l'app, à donner aux ambassadeurs
+      var c = $("code-jour"); c.hidden = !p.code; c.textContent = "Code du jour : " + p.code;
+    }).catch(function () {});
+    etat.tVu = Date.now() / 1000;
+    if (t.maintenant) etat.decalage = t.maintenant - Date.now() / 1000;
+    etat.alertesPar = {};
+    t.alertes.forEach(function (a) { if (a.membre != null) (etat.alertesPar[a.membre] = etat.alertesPar[a.membre] || []).push(a); });
+    dessinerBadges(t);
+    if (etat.vue === "ensemble") dessinerEnsemble(t);
+    if (etat.vue === "sessions") dessinerSessions(t);
+    if (etat.vue === "membres" && !saisieEnCours($("membres"))) dessinerMembres(t);
+    if (etat.vue === "ecrans") { dessinerEcrans(); if (etat.ecranId == null) allerEcran(choisirEcran(), true); }
+  }
+  function dessinerBadges(t) {
+    var crit = 0, att = 0;
+    t.alertes.forEach(function (a) { if (a.niveau === "critique") crit++; else if (a.niveau === "attention") att++; });
+    var b = $("b-ensemble");
+    if (!b) { document.title = "Console Smart Mail"; return; }  // console réduite aux écrans : pas d'onglets
+    b.hidden = !(crit + att);
+    b.textContent = String(crit + att);
+    b.classList.toggle("critique", !!crit);
+    var aVoir = ambassadeurs(t).filter(function (f) { return niveauMembre(f); });
+    var s = $("b-sessions");
+    s.hidden = !aVoir.length;
+    s.textContent = String(aVoir.length);
+    s.classList.toggle("critique", aVoir.some(function (f) { return niveauMembre(f) === "critique"; }));
+    document.title = (crit + att ? "(" + (crit + att) + ") " : "") + "Console Smart Mail";
+  }
+
+  function dessinerEnsemble(t) {
+    var crit = 0, att = 0;
+    t.alertes.forEach(function (a) { if (a.niveau === "critique") crit++; else if (a.niveau === "attention") att++; });
+    var s = $("sante");
+    s.textContent = "";
+    s.className = "sante " + (crit ? "critique" : att ? "attention" : "ok");
+    s.appendChild(ic(crit ? "critique" : att ? "attention" : "succes"));
+    s.appendChild(el("span", null, crit
+      ? pluriel(crit, "alerte critique", "alertes critiques") + (att ? " · " + pluriel(att, "point à surveiller", "points à surveiller") : "")
+      : att ? pluriel(att, "point à surveiller", "points à surveiller") : "Tout fonctionne"));
+    var ul = $("alertes");
+    ul.textContent = "";
+    t.alertes.forEach(function (a) { ul.appendChild(ligneAlerte(a)); });
+
+    var T_ = t.total, k = $("kpis");
+    k.textContent = "";
+    var enCours = [[T_.recherches, "recherche", "recherches"], [T_.tris, "tri", "tris"], [T_.envois, "envoi", "envois"]]
+      .filter(function (x) { return x[0]; }).map(function (x) { return pluriel(x[0], x[1], x[2]); }).join(" · ");
+    [["Sessions connectées", nb(T_.sessions), "sur " + pluriel(T_.membres, "membre", "membres")],
+     ["Travaux en cours", nb(T_.recherches + T_.tris + T_.envois), enCours || "aucun en ce moment"],
+     ["Élèves à envoyer", nb(T_.a_envoyer), "dans toutes les listes"],
+     ["Ont reçu le message", nb(T_.recus), "+" + plein(T_.recus_jour || 0) + " aujourd'hui"]].forEach(function (x) {
+      var d = el("div", "kpi");
+      d.appendChild(el("span", "libelle", x[0]));
+      d.appendChild(el("span", "valeur", x[1]));
+      d.appendChild(el("span", "sous", x[2]));
+      k.appendChild(d);
+    });
+
+    var liste = $("en-direct"), n = 0;
+    liste.textContent = "";
+    ambassadeurs(t).forEach(function (f) {
+      TYPES.forEach(function (ty) {
+        var e = f.travaux[ty];
+        if (!e || !(e.actif || e.statut === "en_cours" || e.statut === "attente")) return;
+        n++;
+        var a = el("a", "ligne"), st = statutVu(e), av = avancement(ty, e);
+        a.href = "#session/" + f.id;
+        var tete = el("div", "ligne-tete");
+        tete.appendChild(el("span", "qui-court", nomDe(f)));
+        tete.appendChild(el("span", "quoi", NOMS[ty]));
+        tete.appendChild(puceStatut(e));
+        a.appendChild(tete);
+        if (av && av.fait != null && av.total) a.appendChild(piste(av.fait, av.total, TONS[st], true, NOMS[ty] + " de " + nomDe(f)));
+        var bas = el("div", "ligne-bas");
+        bas.appendChild(el("span", null, st === "bloque" ? "Aucun progrès depuis " + duree(e.immobile) : (e.message || "")));
+        bas.appendChild(el("span", null, [av ? av.texte : "", ty === "envoi" ? infoPack(e) : ""].filter(Boolean).join(" · ")));
+        a.appendChild(bas);
+        var li = el("li");
+        li.appendChild(a);
+        liste.appendChild(li);
+      });
+    });
+    if (!n) liste.appendChild(el("li", "vide", "Aucune recherche, aucun tri, aucun envoi en cours."));
+    $("nb-direct").textContent = n ? pluriel(n, "travail", "travaux") : "";
+
+    var sv = t.serveur || {}, g = $("jauges"), jauges = [];
+    g.textContent = "";
+    if (sv.coeurs) jauges.push(["Processeur", sv.charge / sv.coeurs, "charge " + (sv.charge || 0).toLocaleString("fr-FR") + " · " + sv.coeurs + " cœurs"]);
+    if (sv.memoire) jauges.push(["Mémoire", sv.memoire.utilise / sv.memoire.total, taille(sv.memoire.utilise) + " / " + taille(sv.memoire.total)]);
+    if (sv.disque) jauges.push(["Disque", sv.disque.utilise / sv.disque.total, taille(sv.disque.utilise) + " / " + taille(sv.disque.total)]);
+    jauges.push(["Navigateurs", T_.maximum ? T_.navigateurs / T_.maximum : 0, plein(T_.navigateurs) + " / " + plein(T_.maximum) + " utilisés", true]);
+    if (T_.budget) jauges.push(["Budget IA du mois", T_.depense / T_.budget, dollars(T_.depense) + " / " + dollars(T_.budget)]);
+    jauges.forEach(function (j) {
+      var d = el("div", "jauge"), tete = el("div", "jauge-tete"), r = Math.max(0, j[1] || 0);
+      tete.appendChild(el("span", null, j[0]));
+      tete.appendChild(el("b", null, j[2]));
+      d.appendChild(tete);
+      var ton = j[3] ? (r >= 1 ? "attention" : "") : r >= 0.9 ? "critique" : r >= 0.7 ? "attention" : "";
+      d.appendChild(piste(Math.min(r, 1) * 100, 100, ton, false, j[0]));
+      g.appendChild(d);
+    });
+    var ia = t.ia || { ok: true }, l = $("ligne-ia");
+    l.textContent = "";
+    l.appendChild(ic(ia.ok ? "succes" : "critique", ia.ok ? "niv-succes" : "niv-critique"));
+    l.appendChild(el("span", null, ia.ok ? "Claude répond normalement" + (ia.depuis ? " (dernier tri " + ilya(ia.depuis) + ")" : "") + "."
+                                        : "Claude ne répond plus : " + (ia.raison || "panne") + ". Les tris sont en pause."));
+    $("demarre").textContent = sv.demarre ? "en ligne depuis " + duree(maintenant() - sv.demarre) + (sv.base_octets ? " · base " + taille(sv.base_octets) : "") : "";
+  }
+
+  var FILTRES = [["toutes", "Toutes"], ["en_cours", "En cours"], ["surveiller", "À surveiller"], ["sans", "Sans session"], ["coupes", "Accès coupé"]];
+  function correspond(f, filtre) {
+    if (filtre === "en_cours") return actifs(f) > 0;
+    if (filtre === "surveiller") return !!niveauMembre(f);
+    if (filtre === "sans") return f.actif && !f.session.connecte;
+    if (filtre === "coupes") return !f.actif;
+    return true;
+  }
+  function dessinerSessions(t) {
+    t = { membres: ambassadeurs(t) };  // les administrateurs patrouillent, ils n'ont pas de session à suivre
+    var p = $("puces");
+    p.textContent = "";
+    FILTRES.forEach(function (x) {
+      var n = t.membres.filter(function (f) { return correspond(f, x[0]); }).length;
+      if (x[0] === "coupes" && !n && etat.filtre !== "coupes") return;
+      var b = el("button", "puce");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(etat.filtre === x[0]));
+      b.appendChild(document.createTextNode(x[1]));
+      b.appendChild(el("b", null, plein(n)));
+      b.onclick = function () { etat.filtre = x[0]; dessinerSessions(etat.t); };
+      p.appendChild(b);
+    });
+    var q = etat.cherche.trim().toLowerCase(), rang = { critique: 0, attention: 1, "": 2 };
+    var liste = t.membres.filter(function (f) {
+      return correspond(f, etat.filtre) && (!q || [f.email, f.nom, f.ecole].join(" ").toLowerCase().indexOf(q) >= 0);
+    });
+    liste.sort(function (a, b) {
+      var ra = rang[niveauMembre(a)], rb = rang[niveauMembre(b)];
+      if (ra !== rb) return ra - rb;
+      if (actifs(a) !== actifs(b)) return actifs(b) - actifs(a);
+      return secondes(b.activite) - secondes(a.activite);
+    });
+    var z = $("fiches");
+    z.textContent = "";
+    liste.forEach(function (f) { z.appendChild(fiche(f)); });
+    if (!liste.length) z.appendChild(el("p", "vide", t.membres.length ? "Aucune session ne correspond." : "Aucun ambassadeur pour l'instant."));
+  }
+  function ligneJob(ty, e) {
+    var d = el("div", "job"), st = statutVu(e), av = avancement(ty, e), tete = el("div", "job-tete");
+    tete.appendChild(el("span", "job-nom", NOMS[ty]));
+    tete.appendChild(puceStatut(e));
+    if (av) tete.appendChild(el("span", "job-chiffre", av.texte));
+    d.appendChild(tete);
+    if (av && av.fait != null && av.total) d.appendChild(piste(av.fait, av.total, TONS[st], true, NOMS[ty]));
+    var msg = st === "bloque" ? "Aucun progrès depuis " + duree(e.immobile) + " · " + (e.message || "")
+                              : [e.message, ty === "envoi" ? infoPack(e) : ""].filter(Boolean).join(" · ");
+    if (msg) d.appendChild(el("p", "job-msg" + (st === "bloque" || st === "erreur" ? " alerte-texte" : ""), msg));
+    return d;
+  }
+  function fiche(f) {
+    var niv = niveauMembre(f), a = el("a", "fiche" + (niv ? " " + niv : "") + (f.actif ? "" : " inactif"));
+    a.href = "#session/" + f.id;
+    var tete = el("div", "fiche-tete");
+    tete.appendChild(el("span", "avatar", initiales(f)));
+    var qui = el("div", "qui");
+    qui.appendChild(el("strong", null, nomDe(f)));
+    qui.appendChild(el("small", null, [f.ecole, f.activite ? "vu " + ilya(f.activite) : "jamais vu",
+                                       f.appareils ? pluriel(f.appareils, "appareil", "appareils") : "", f.actif ? "" : "accès coupé"]
+                                      .filter(Boolean).join(" · ")));
+    tete.appendChild(qui);
+    tete.appendChild(pastilleBoite(f.session));
+    a.appendChild(tete);
+    var jobs = el("div", "jobs"), montres = 0;
+    TYPES.forEach(function (ty) {
+      var e = f.travaux[ty];
+      if (!e || e.statut === "aucun") return;
+      montres++;
+      jobs.appendChild(ligneJob(ty, e));
+    });
+    if (!montres) jobs.appendChild(el("p", "job-msg", "Pas encore de recherche ni d'envoi."));
+    (etat.alertesPar[f.id] || []).filter(function (x) {
+      return x.niveau !== "info" && !/n'avance plus|a bloqué la boîte|s'est arrêté/.test(x.texte);
+    }).slice(0, 2).forEach(function (x) {
+      var p = el("p", "job-msg alerte-texte" + (x.niveau === "critique" ? " critique" : ""));
+      p.appendChild(sr((NIVEAUX[x.niveau] || "") + " : "));
+      p.appendChild(document.createTextNode(x.texte));
+      jobs.appendChild(p);
+    });
+    a.appendChild(jobs);
+    a.appendChild(compteurs(f.liste));
+    return a;
+  }
+  function compteurs(l) {
+    var c = el("div", "compteurs");
+    [["À envoyer", l.a_envoyer], ["Reçus", l.recus], ["Exclus", l.exclus], ["Extraits", l.extraits]].forEach(function (x) {
+      var d = el("div");
+      d.appendChild(el("b", null, nb(x[1])));
+      d.appendChild(el("span", null, x[0]));
+      c.appendChild(d);
+    });
+    return c;
+  }
+
+  function dessinerMembres(t) {
+    var ul = $("membres");
+    ul.textContent = "";
+    t.membres.slice().sort(function (a, b) { return nomDe(a).localeCompare(nomDe(b)); }).forEach(function (f) {
+      var li = el("li", "membre" + (f.actif ? "" : " inactif")), tete = el("div", "membre-tete");
+      tete.appendChild(el("span", "avatar petit", initiales(f)));
+      var qui = el("div", "qui"), lien = el("a", "lien", nomDe(f));
+      lien.href = "#session/" + f.id;
+      qui.appendChild(lien);
+      qui.appendChild(el("small", null, [pluriel(f.ia.contacts, "contact trié", "contacts triés") + " ce mois · " + dollars(f.ia.cout),
+                                         pluriel(f.appareils, "appareil", "appareils"), f.actif ? "" : "accès coupé"].filter(Boolean).join(" · ")));
+      tete.appendChild(qui);
+      tete.appendChild(pastilleBoite(f.session));
+      li.appendChild(tete);
+      var act = el("div", "membre-actions");
+      act.appendChild(choixRole(f));
+      act.appendChild(boutonAcces(f));
+      li.appendChild(act);
+      ul.appendChild(li);
+    });
+    if (!t.membres.length) ul.appendChild(el("li", "vide", "Aucun membre pour l'instant."));
+  }
+  function choixRole(f) {
+    var sel = el("select", "champ");
+    [["ambassadeur", "Ambassadeur"], ["administrateur", "Administrateur"]].forEach(function (o) {
+      var op = el("option", null, o[1]);
+      op.value = o[0];
+      sel.appendChild(op);
+    });
+    sel.value = f.role || "ambassadeur";
+    sel.setAttribute("aria-label", "Rôle de " + nomDe(f));
+    sel.onchange = function () { modifier(f.id, { role: sel.value }, sel); };
+    return sel;
+  }
+  function boutonAcces(f) {
+    return bouton(f.actif ? "Couper l'accès" : "Rétablir l'accès", (f.actif ? "danger" : "secondaire") + " petit", function () {
+      if (f.actif && !confirm("Couper l'accès de " + nomDe(f) + " ?\n\nTous ses appareils seront déconnectés. Sa liste et ses travaux sont gardés.")) return;
+      modifier(f.id, { actif: !f.actif });
+    });
+  }
+  async function modifier(id, champs, champ) {
+    try { await api("/v1/admin/membres/" + id, champs, "PUT"); toast("Enregistré."); }
+    catch (e) { if (!(await bloquante(e))) toast(e.message, true); }
+    if (champ) champ.blur();
+    tour(true);
+  }
+
+  // ------------------------------------------------------------------ activité
+  async function chargerFil(mode) {
+    var q = "/v1/admin/journal?taille=60" + (etat.problemes ? "&problemes=true" : "") + (mode === "plus" && etat.suite ? "&avant=" + etat.suite : "");
+    var r = await api(q);
+    if (mode === "plus") { etat.fil = etat.fil.concat(r.evenements); etat.suite = r.suite; }
+    else if (mode === "debut" || !etat.fil.length) { etat.fil = r.evenements; etat.suite = r.suite; }
+    else {
+      var vus = {};
+      etat.fil.forEach(function (e) { vus[e.id] = 1; });
+      var neufs = r.evenements.filter(function (e) { return !vus[e.id]; });
+      if (!neufs.length) return;
+      etat.fil = neufs.concat(etat.fil);
+    }
+    var z = $("fil");
+    z.textContent = "";
+    z.appendChild(listeEvenements(etat.fil, true));
+    $("plus").hidden = !etat.suite;
+  }
+  function listeEvenements(evts, avecQui) {
+    var frag = document.createDocumentFragment(), jour = "", ul = null;
+    evts.forEach(function (ev) {
+      var j = cleJour(ev.quand);
+      if (j !== jour) {
+        jour = j;
+        frag.appendChild(el("h3", "jour", libelleJour(ev.quand)));
+        ul = el("ul", "evenements");
+        frag.appendChild(ul);
+      }
+      var li = el("li", "evenement"), t = el("time", null, heure(ev.quand));
+      t.dateTime = new Date(ev.quand * 1000).toISOString();
+      li.appendChild(t);
+      li.appendChild(ic(ICONE_NIVEAU[ev.niveau] || "info", "niv-" + (ev.niveau || "info")));
+      var tx = el("div", "texte");
+      tx.appendChild(sr((NIVEAUX[ev.niveau] || "Info") + " : "));
+      tx.appendChild(document.createTextNode(ev.texte));
+      if (avecQui && ev.utilisateur_id != null) {
+        var a = el("a", "lien", ev.email || ("Compte " + ev.utilisateur_id));
+        a.href = "#session/" + ev.utilisateur_id;
+        tx.appendChild(a);
+      }
+      li.appendChild(tx);
+      ul.appendChild(li);
+    });
+    if (!evts.length) frag.appendChild(el("p", "vide", etat.problemes && avecQui ? "Aucun problème signalé." : "Rien pour l'instant."));
+    return frag;
+  }
+  document.querySelectorAll("#puces-fil .puce").forEach(function (b) {
+    b.onclick = function () {
+      etat.problemes = b.getAttribute("data-problemes") === "1";
+      document.querySelectorAll("#puces-fil .puce").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      chargerFil("debut").catch(function (e) { toast(e.message, true); });
+    };
+  });
+  $("plus").onclick = function () {
+    $("plus").disabled = true;
+    chargerFil("plus").catch(function (e) { toast(e.message, true); }).then(function () { $("plus").disabled = false; });
+  };
+  $("cherche").oninput = function () { etat.cherche = this.value; if (etat.t) dessinerSessions(etat.t); };
+
+  // ------------------------------------------------------------------ détail d'une session
+  function afficherDetail(id) {
+    etat.focusAvant = document.activeElement;
+    etat.detailId = id;
+    etat.d = null;
+    $("detail").hidden = false;
+    $("voile").hidden = false;
+    document.body.classList.add("fige");
+    var f = etat.t && etat.t.membres.filter(function (x) { return x.id === id; })[0];
+    $("d-titre").textContent = f ? nomDe(f) : "Session";
+    $("d-sous").textContent = f ? f.ecole : "";
+    var z = $("d-corps");
+    z.textContent = "";
+    z.appendChild(el("p", "vide", "Chargement…"));
+    z.scrollTop = 0;
+    $("fermer").focus();
+    tour(true);
+  }
+  function cacherDetail() {
+    etat.detailId = null;
+    etat.d = null;
+    $("detail").hidden = true;
+    $("voile").hidden = true;
+    document.body.classList.remove("fige");
+    masquerBulle();
+    if (etat.focusAvant && document.body.contains(etat.focusAvant)) etat.focusAvant.focus();
+  }
+  function fermerDetail() {
+    if (etat.depuisListe) { etat.depuisListe = false; history.back(); return; }
+    history.replaceState(null, "", "#" + etat.vue);
+    router();
+  }
+  $("fermer").onclick = fermerDetail;
+  $("voile").onclick = fermerDetail;
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && etat.detailId != null) fermerDetail(); });
+
+  async function chargerDetail() {
+    var id = etat.detailId, d;
+    try {
+      d = await api("/v1/admin/membres/" + id + "/detail");
+    } catch (e) {
+      if (e.statut === 404) { toast("Ce membre n'existe plus.", true); fermerDetail(); return; }
+      throw e;
+    }
+    if (etat.detailId !== id) return;
+    etat.d = d;
+    if (d.maintenant) etat.decalage = d.maintenant - Date.now() / 1000;
+    if (!saisieEnCours($("detail"))) dessinerDetail(d);
+  }
+  function dessinerDetail(d) {
+    $("d-titre").textContent = nomDe(d);
+    $("d-sous").textContent = [d.ecole, d.role === "administrateur" ? "administrateur" : "ambassadeur", d.actif ? "" : "accès coupé"].filter(Boolean).join(" · ");
+    var z = $("d-corps"), haut = z.scrollTop, frag = document.createDocumentFragment();
+    if (d.actif) {
+      var voir = el("a", "btn principal large", "Voir son écran et agir");
+      voir.href = "#ecran/" + d.id;
+      voir.insertBefore(ic("ecrans"), voir.firstChild);
+      frag.appendChild(voir);
+    }
+    if (d.alertes && d.alertes.length) {
+      var ul = el("ul", "alertes");
+      d.alertes.forEach(function (a) { ul.appendChild(ligneAlerte({ niveau: a.niveau, texte: a.texte, membre: null })); });
+      frag.appendChild(ul);
+    }
+    var ct = carte("Travaux", d.activite ? "vu " + ilya(d.activite) : "");
+    TYPES.forEach(function (ty) { ct.appendChild(blocTravail(d, ty)); });
+    frag.appendChild(ct);
+
+    var l = d.liste, cl = carte("Liste", l.a_trier ? plein(l.a_trier) + " extraits encore à trier" : "");
+    cl.appendChild(compteurs(l));
+    cl.appendChild(histogramme(d.envois_jour || []));
+    frag.appendChild(cl);
+
+    var m = d.messagerie || {}, cm = carte("Messagerie"), dl = el("dl", "paires");
+    paire(dl, "Boîte", m.type === "gmail" ? "Gmail" : "Outlook");
+    paire(dl, "Adresse", m.adresse || "—");
+    paire(dl, "Session sur le serveur", m.connecte ? "active" : "aucune : il doit se reconnecter");
+    if (m.depuis) paire(dl, "Connectée", ilya(m.depuis));
+    if (m.verifie) paire(dl, "Dernière vérification", ilya(m.verifie));
+    cm.appendChild(dl);
+    frag.appendChild(cm);
+
+    if (d.derniers && d.derniers.length) {
+      var cd = carte("Derniers envois"), ld = el("ul", "liste-simple");
+      d.derniers.forEach(function (x) {
+        var li = el("li"), g = el("div", "g");
+        li.appendChild(ic("lettre"));
+        g.appendChild(el("span", null, x.nom || x.adresse));
+        if (x.nom) g.appendChild(el("small", null, x.adresse));
+        li.appendChild(g);
+        var dr = el("div", "d");
+        dr.appendChild(el("div", null, ELEVES[x.statut] || x.statut));
+        if (x.maj) dr.appendChild(el("div", null, quand(x.maj)));
+        li.appendChild(dr);
+        ld.appendChild(li);
+      });
+      cd.appendChild(ld);
+      frag.appendChild(cd);
+    }
+
+    var ca = carte("Appareils connectés à Smart Mail"), la = el("ul", "liste-simple");
+    (d.appareils_liste || []).forEach(function (x) {
+      var li = el("li"), g = el("div", "g");
+      li.appendChild(ic("appareil"));
+      g.appendChild(el("span", null, x.appareil));
+      g.appendChild(el("small", null, "actif " + ilya(x.vu) + " · connecté " + ilya(x.depuis)));
+      li.appendChild(g);
+      var b = el("button", "lien", "Déconnecter");
+      b.type = "button";
+      b.onclick = function () {
+        if (!confirm("Déconnecter « " + x.appareil + " » de " + nomDe(d) + " ?")) return;
+        b.disabled = true;
+        api("/v1/admin/membres/" + d.id + "/appareils/" + encodeURIComponent(x.ref), null, "DELETE")
+          .then(function () { toast("Appareil déconnecté."); })
+          .catch(function (e) { toast(e.message, true); })
+          .then(function () { tour(true); });
+      };
+      li.appendChild(b);
+      la.appendChild(li);
+    });
+    if (!(d.appareils_liste || []).length) la.appendChild(el("li", "vide", "Aucun appareil connecté."));
+    ca.appendChild(la);
+    frag.appendChild(ca);
+
+    var cj = carte("Journal", "30 derniers jours");
+    cj.appendChild(listeEvenements(d.journal || [], false));
+    frag.appendChild(cj);
+    frag.appendChild(carteCompte(d));
+    z.textContent = "";
+    z.appendChild(frag);
+    z.scrollTop = haut;
+  }
+  function reprenable(ty, e) {
+    if (!e || e.actif) return false;
+    if (e.statut === "pause" || e.statut === "erreur") return true;
+    return ty === "annuaire" && e.statut === "fini" && /pause/i.test(e.message || "");
+  }
+  function blocTravail(d, ty) {
+    var e = d.travaux[ty] || { statut: "aucun" }, st = statutVu(e), av = avancement(ty, e), p = e.progression || {};
+    var b = el("div", "bloc-travail"), tete = el("div", "bloc-tete"), actions = el("div", "actions");
+    tete.appendChild(el("span", "job-nom", NOMS[ty]));
+    tete.appendChild(puceStatut(e));
+    if (e.actif) actions.appendChild(bouton("Mettre en pause", "secondaire petit", function (btn) { agir(btn, "pause", d, ty); }));
+    else if (reprenable(ty, e)) actions.appendChild(bouton("Reprendre", "principal petit", function (btn) { agir(btn, "reprendre", d, ty); }));
+    if (ty === "envoi" && d.actif && !e.actif && e.statut !== "attente") {
+      actions.appendChild(bouton("Programmer un envoi", "secondaire petit", function () { etat.programmerApres = d.id; location.hash = "#ecran/" + d.id; }));
+    }
+    if (actions.childNodes.length) tete.appendChild(actions);
+    b.appendChild(tete);
+    if (av && av.fait != null && av.total) b.appendChild(piste(av.fait, av.total, TONS[st], false, NOMS[ty]));
+    if (e.message) b.appendChild(el("p", "msg", e.message));
+    var meta = el("p", "meta");
+    if (av) meta.appendChild(el("span", null, av.texte));
+    if (ty === "annuaire") {
+      if (p.releves) meta.appendChild(el("span", null, plein(p.releves) + " contacts lus"));
+      if (p.ecartes) meta.appendChild(el("span", null, plein(p.ecartes) + " écartés"));
+    }
+    if (ty === "envoi") {
+      if (p.a_verifier) meta.appendChild(el("span", null, plein(p.a_verifier) + " à vérifier"));
+      if (p.echecs) meta.appendChild(el("span", null, plein(p.echecs) + " échecs"));
+      if (p.non_distribues) meta.appendChild(el("span", null, plein(p.non_distribues) + " non distribués"));
+      if (infoPack(e)) meta.appendChild(el("span", null, infoPack(e)));
+    }
+    if (st === "bloque") meta.appendChild(el("span", "alerte-texte", "Aucun progrès depuis " + duree(e.immobile)));
+    else if (e.actif && e.progres) meta.appendChild(el("span", null, "dernier progrès " + ilya(e.progres)));
+    else if (e.maj && e.statut !== "aucun") meta.appendChild(el("span", null, "mis à jour " + ilya(e.maj)));
+    if (meta.childNodes.length) b.appendChild(meta);
+    if (ty === "annuaire" && d.recherche && d.recherche.objectif) {
+      b.appendChild(el("p", "meta", "Objectif : " + plein(d.recherche.objectif) + " élèves" + (d.recherche.extraction ? " · extraction d'abord" : "")));
+    }
+    if (ty === "envoi") {
+      var r = d.rythme || {}, reg = el("p", "meta");
+      reg.appendChild(el("span", null, r.pack ? "Packs de " + r.pack + " mails, pause de " + r.attente + " min" : "Sans packs"));
+      reg.appendChild(el("span", null, "de " + (r.heure_debut != null ? r.heure_debut : 8) + " h à " + (r.heure_fin != null ? r.heure_fin : 20) + " h"));
+      if (d.message && d.message.objet) reg.appendChild(el("span", null, "Objet : « " + d.message.objet + " »"));
+      b.appendChild(reg);
+    }
+    return b;
+  }
+  async function agir(btn, quoi, d, ty) {
+    var qui = nomDe(d);
+    var question = quoi === "pause"
+      ? NOMS[ty] + " de " + qui + " : mettre en pause ?" + (ty === "envoi" ? "\n\nLe mail en cours part, puis l'envoi s'arrête." : "")
+      : NOMS[ty] + " de " + qui + " : reprendre là où il en était ?" + (ty === "envoi" ? "\n\nLes mails partiront de sa boîte, à son rythme (packs et plage horaire)." : "");
+    if (!confirm(question)) return;
+    btn.disabled = true;
+    try {
+      await api("/v1/admin/membres/" + d.id + "/" + quoi, { travail: ty });
+      toast(quoi === "pause" ? "Pause demandée." : "Reprise demandée.");
+    } catch (e) {
+      if (!(await bloquante(e))) toast(e.message, true);
+    }
+    tour(true);
+  }
+  function carteCompte(d) {
+    var c = carte("Compte"), dl = el("dl", "paires");
+    paire(dl, "Tri par l'IA ce mois", pluriel(d.ia.contacts, "contact", "contacts") + " · " + dollars(d.ia.cout));
+    paire(dl, "Quota mensuel", pluriel(d.ia.quota, "contact", "contacts"));
+    c.appendChild(dl);
+    var reg = el("div", "reglages"), lr = el("label"), lq = el("label");
+    lr.appendChild(document.createTextNode("Rôle"));
+    lr.appendChild(choixRole(d));
+    reg.appendChild(lr);
+    lq.appendChild(document.createTextNode("Quota"));
+    var q = el("input", "champ court");
+    q.type = "number";
+    q.min = "0";
+    q.step = "1000";
+    q.inputMode = "numeric";
+    q.value = d.ia.quota;
+    q.setAttribute("aria-label", "Quota mensuel de contacts");
+    q.onchange = function () { var v = parseInt(q.value, 10); if (v >= 0) modifier(d.id, { quota_mensuel: v }, q); };
+    lq.appendChild(q);
+    reg.appendChild(lq);
+    reg.appendChild(boutonAcces(d));
+    c.appendChild(reg);
+    return c;
+  }
+
+  // Envois par jour : une seule série, le titre la nomme ; le pic est étiqueté, le reste
+  // se lit au survol, au focus, ou dans « Voir les chiffres ».
+  function histogramme(jours) {
+    var bloc = el("div", "histo"), total = 0, max = 0;
+    jours.forEach(function (j) { total += j.n; max = Math.max(max, j.n); });
+    var tete = el("div", "histo-tete"), resume = el("span", "aide");
+    tete.appendChild(el("h3", "jour", "Envois par jour"));
+    resume.appendChild(document.createTextNode("14 jours : "));
+    resume.appendChild(el("b", null, plein(total)));
+    resume.appendChild(document.createTextNode(" · aujourd'hui : "));
+    resume.appendChild(el("b", null, plein(jours.length ? jours[jours.length - 1].n : 0)));
+    tete.appendChild(resume);
+    bloc.appendChild(tete);
+    if (!total) { bloc.appendChild(el("p", "vide", "Aucun envoi ces 14 derniers jours.")); return bloc; }
+    var zone = el("div", "histo-zone"), barres = el("div", "histo-barres"), pic = -1;
+    jours.forEach(function (j, i) { if (j.n === max) pic = i; });
+    barres.setAttribute("role", "list");
+    barres.setAttribute("aria-label", "Envois par jour, 14 derniers jours");
+    jours.forEach(function (j, i) {
+      var b = el("button"), h = j.n / max * 100, s = el("span", "barre"), lib = jourIso(j.jour, { weekday: "long", day: "numeric", month: "long" });
+      b.type = "button";
+      b.setAttribute("role", "listitem");
+      b.setAttribute("aria-label", lib + " : " + pluriel(j.n, "envoi", "envois"));
+      s.style.height = (j.n ? Math.max(h, 2) : 0) + "%";
+      b.appendChild(s);
+      if (i === pic) {
+        var v = el("span", "val", plein(j.n));
+        v.style.bottom = "calc(" + h.toFixed(1) + "% + 3px)";
+        b.appendChild(v);
+      }
+      var montrer = function () { bulle(s, plein(j.n) + (j.n > 1 ? " envois" : " envoi"), lib); };
+      b.addEventListener("pointerenter", montrer);
+      b.addEventListener("focus", montrer);
+      b.addEventListener("pointerleave", masquerBulle);
+      b.addEventListener("blur", masquerBulle);
+      barres.appendChild(b);
+    });
+    zone.appendChild(barres);
+    bloc.appendChild(zone);
+    var axe = el("div", "histo-axe");
+    axe.appendChild(el("span", null, jourIso(jours[0].jour, { day: "numeric", month: "short" })));
+    axe.appendChild(el("span", null, "aujourd'hui"));
+    bloc.appendChild(axe);
+    var det = el("details", "chiffres"), tb = el("table"), corps = el("tbody");
+    det.open = etat.chiffres;
+    det.addEventListener("toggle", function () { etat.chiffres = det.open; });
+    det.appendChild(el("summary", null, "Voir les chiffres"));
+    jours.slice().reverse().forEach(function (j) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, jourIso(j.jour, { weekday: "short", day: "numeric", month: "short" })));
+      tr.appendChild(el("td", null, plein(j.n)));
+      corps.appendChild(tr);
+    });
+    tb.appendChild(corps);
+    det.appendChild(tb);
+    bloc.appendChild(det);
+    return bloc;
+  }
+  function bulle(cible, valeur, libelle) {
+    var b = $("bulle");
+    b.textContent = "";
+    b.appendChild(el("b", null, valeur));
+    b.appendChild(document.createTextNode(libelle));
+    b.hidden = false;
+    var r = cible.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight;
+    var x = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)), y = r.top - h - 8;
+    if (y < 8) y = r.bottom + 8;
+    b.style.left = x + "px";
+    b.style.top = y + "px";
+  }
+  function masquerBulle() { $("bulle").hidden = true; }
+
+  // ------------------------------------------------------------------ écrans : l'application de chaque ambassadeur
+  // Chaque écran est la vraie application de l'ambassadeur, ouverte avec une session à part
+  // (« Console administrateur », visible dans ses appareils). Les derniers écrans vus restent
+  // chargés : passer de l'un à l'autre est immédiat, et chacun garde où il en était.
+  var CADRES = {}, ORDRE_CADRES = [], MAX_CADRES = 4, ESSAIS = {};
+  var patrouille = { active: false, delai: 20, minuterie: null, repos: 0 };
+  function lirePrefs() {
+    try {
+      var p = JSON.parse(localStorage.getItem("smartmail-console") || "{}");
+      if (p.delai) { patrouille.delai = p.delai; $("patrouille-delai").value = String(p.delai); }
+      if (p.ecran) etat.ecranPrefere = p.ecran;
+      if (p.telephone) basculerFormat(true);
+    } catch (e) {}
+  }
+  function ecrirePrefs() {
+    try {
+      localStorage.setItem("smartmail-console", JSON.stringify({ delai: patrouille.delai, ecran: etat.ecranId,
+                                                                 telephone: $("ecran-cadre").classList.contains("telephone") }));
+    } catch (e) {}
+  }
+  function ecoleCourte(f) {
+    var labels = String(f.ecole || "").split(".");
+    if (labels.length > 2 && /^(mail|etu|etud|etudiant|student|students|my|edu)$/.test(labels[0])) labels.shift();
+    var n = (labels[0] || "").replace(/-(bs|business-school|school)$/, "");
+    return n.length <= 7 ? n.toUpperCase() : n.charAt(0).toUpperCase() + n.slice(1);
+  }
+  function prenom(f) {
+    var p = String(f.email || f.nom || "").split("@")[0].split(/[._\-]/)[0];
+    return p ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+  }
+  function ambassadeurs(t) { return (t ? t.membres : []).filter(function (f) { return !!f.email; }); }  // l’IESEG (compte administrateur) a aussi son écran
+  function membresEcrans() {
+    return ambassadeurs(etat.t).filter(function (f) { return f.actif; })
+      .sort(function (a, b) { return (ecoleCourte(a) + nomDe(a)).localeCompare(ecoleCourte(b) + nomDe(b)); });
+  }
+  function choisirEcran() {
+    var l = membresEcrans();
+    if (!l.length) return null;
+    var pref = l.filter(function (f) { return f.id === etat.ecranPrefere; })[0];
+    return (pref || l[0]).id;
+  }
+  function resumeMembre(f) {
+    var en = TYPES.filter(function (ty) { return f.travaux[ty] && (f.travaux[ty].actif || f.travaux[ty].statut === "attente"); });
+    if (en.length) {
+      var ty = en.indexOf("envoi") >= 0 ? "envoi" : en[0], e = f.travaux[ty], av = avancement(ty, e);
+      return STATUTS[statutVu(e)][0] + " : " + NOMS[ty].toLowerCase() + (av ? " · " + av.texte : "");
+    }
+    if (!f.session.connecte) return "Pas de session de messagerie";
+    return nb(f.liste.a_envoyer) + " à envoyer · " + nb(f.liste.recus) + " reçus";
+  }
+  function tonMembre(f) {
+    var n = niveauMembre(f);
+    return n || (actifs(f) ? "actif" : f.session.connecte ? "calme" : "coupe");
+  }
+  function dessinerEcrans() {
+    var z = $("ecrans-liste"), l = membresEcrans();
+    z.textContent = "";
+    l.forEach(function (f) {
+      var a = el("a", "ecran-choix");
+      a.href = "#ecran/" + f.id;
+      if (f.id === etat.ecranId) a.setAttribute("aria-current", "true");
+      a.onclick = function (ev) { ev.preventDefault(); allerEcran(f.id); };
+      a.appendChild(el("span", "rond " + tonMembre(f)));
+      var tx = el("span", "txt");
+      tx.appendChild(el("strong", null, ecoleCourte(f) + (prenom(f) ? " · " + prenom(f) : "")));
+      tx.appendChild(el("small", null, resumeMembre(f)));
+      a.appendChild(tx);
+      z.appendChild(a);
+    });
+    if (!l.length) z.appendChild(el("p", "vide", "Aucun ambassadeur."));
+    $("ecran-vide").textContent = l.length ? "Choisissez un ambassadeur." : "Aucun ambassadeur pour l'instant.";
+    var actif = z.querySelector('[aria-current="true"]');
+    if (actif && actif.scrollIntoView && etat.chipCentre !== etat.ecranId) {  // seulement quand l'écran change
+      etat.chipCentre = etat.ecranId;
+      actif.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+    majBarre();
+  }
+  // Le pilote automatique : chaque étape, avec ses chiffres (collecte → tri → programmé → envoi).
+  function quandCourt(ts) {
+    var d = new Date(ts * 1000);
+    return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " " + d.getHours() + " h " + String(d.getMinutes()).padStart(2, "0");
+  }
+  function dessinerPilote(f) {
+    var z = $("pilote-etapes"), p = f && f.pilote;
+    z.hidden = !p; z.textContent = "";
+    if (!p) return;
+    var ordre = ["collecte", "tri", "programme", "envoi", "fini"], ici = p.etape === "bloque" ? "envoi" : p.etape;
+    var rang = ordre.indexOf(ici), l = f.liste || {};
+    var details = {
+      collecte: nb(p.contacts || 0) + " contacts · jusqu'au " + quandCourt(p.fin_collecte),
+      tri: nb(l.a_envoyer || 0) + " étudiants · " + nb(l.exclus || 0) + " exclus",
+      programme: quandCourt(p.debut),
+      envoi: p.etape === "bloque" ? "Bloqué · reprise " + quandCourt(p.reprise_a) + " · volume ÷" + Math.round(1 / (p.facteur || 1))
+        : nb(l.recus || 0) + " reçus · " + nb(l.a_envoyer || 0) + " à envoyer" + (p.blocages ? " · " + p.blocages + " blocage(s)" : ""),
+      fini: nb(l.recus || 0) + " reçus"
+    };
+    var noms = { collecte: "Collecte", tri: "Tri", programme: "Programmé", envoi: "Envoi", fini: "Terminé" };
+    z.appendChild(el("span", "pe-titre", "Pilote"));
+    ordre.forEach(function (k, i) {
+      var e = el("span", "pe-etape " + (i < rang ? "faite" : i === rang ? (p.etape === "bloque" ? "bloquee" : "en-cours") : "a-venir"));
+      e.appendChild(el("strong", "", (i < rang ? "✓ " : "") + noms[k]));
+      e.appendChild(el("small", "", details[k]));
+      z.appendChild(e);
+    });
+  }
+  // ------------------------------------------------------------ page d'un ambassadeur
+  // En haut : l'avancée en direct, une seule chose à la fois (extraction, ou envoi, ou programmé).
+  // Dessous : date et heure, rythme, langue, et le message (volet fermé par défaut).
+  var NOMS_LANGUES = { fr: "Français", en: "English", es: "Español", de: "Deutsch", it: "Italiano" };
+  var SESSION = { uid: null, d: null };
+  function pourChamp(ts) {
+    var d = new Date(ts * 1000), z = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()) + "T" + z(d.getHours()) + ":" + z(d.getMinutes());
+  }
+  function quandLong(ts) {
+    var d = new Date(ts * 1000), j = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    return j + " à " + d.getHours() + " h " + String(d.getMinutes()).padStart(2, "0");
+  }
+  function phaseSession(f) {
+    var tr = f.travaux || {}, a = tr.annuaire || {}, t = tr.tri || {}, e = tr.envoi || {}, l = f.liste || {}, pe = e.progression || {};
+    var aCommence = (l.recus || 0) > 0 || (pe.envoyes || 0) > 0;
+    if (e.statut === "en_cours" || ((e.statut === "pause" || e.statut === "erreur") && aCommence)) return "envoi";
+    if (e.statut === "fini" && aCommence) return "fini";
+    if (a.actif || a.statut === "en_cours" || t.actif || t.statut === "en_cours") return "extraction";
+    if (e.statut === "attente") return "programme";
+    return "extraction";
+  }
+  function chiffre(nom, valeur, sous) {
+    var c = el("div", "s-chiffre");
+    c.appendChild(el("span", "s-chiffre-nom", nom));
+    c.appendChild(el("strong", "s-chiffre-val", valeur));
+    if (sous) c.appendChild(el("small", "", sous));
+    return c;
+  }
+  function dessinerEtatSession(f) {
+    var z = $("session");
+    if (!f) { z.textContent = ""; return; }
+    var carte = $("s-etat");
+    if (!carte || SESSION.uid !== f.id) return;
+    carte.textContent = "";
+    var ph = phaseSession(f), tr = f.travaux || {}, l = f.liste || {}, p = f.pilote || {};
+    var a = tr.annuaire || {}, t = tr.tri || {}, e = tr.envoi || {}, pe = e.progression || {};
+    var tete = el("div", "s-tete"), titre, ton = "actif", sous = "";
+    if (ph === "extraction") {
+      var enTri = t.actif || t.statut === "en_cours";
+      titre = enTri ? "Tri en cours" : a.statut === "erreur" ? "Extraction arrêtée" : a.actif || a.statut === "en_cours" ? "Extraction en cours" : "Extraction en attente";
+      ton = a.statut === "erreur" ? "critique" : (a.actif || enTri) ? "actif" : "calme";
+      sous = (enTri ? t.message : a.message) || "";
+      if (p.fin_collecte) sous += (sous ? " · " : "") + "jusqu'au " + quandLong(p.fin_collecte);
+      else if (!p.debut && f.pilote) sous += (sous ? " · " : "") + "en attendant la date d'envoi";
+    } else if (ph === "envoi" || ph === "fini") {
+      titre = ph === "fini" ? "Envoi terminé" : pe.blocage ? "Envoi bloqué par la messagerie" : e.statut === "pause" ? "Envoi en pause" : e.statut === "erreur" ? "Envoi arrêté" : "Envoi en cours";
+      ton = ph === "fini" ? "calme" : (pe.blocage || e.statut === "erreur") ? "critique" : e.statut === "pause" ? "attention" : "actif";
+      sous = e.message || "";
+      if (p.etape === "bloque" && p.reprise_a) sous = "Reprise " + quandLong(p.reprise_a) + " au rythme d'IESEG : 90 personnes par jour";
+    } else {
+      titre = "Envoi programmé";
+      ton = "calme";
+      var deb = p.debut || ((e.progression || {}).programme);
+      sous = deb ? quandLong(deb) : (e.message || "");
+    }
+    tete.appendChild(el("span", "s-point " + ton));
+    var tt = el("div", "s-titres");
+    tt.appendChild(el("h2", "", titre));
+    if (sous) tt.appendChild(el("p", "aide", sous));
+    tete.appendChild(tt);
+    carte.appendChild(tete);
+    var g = el("div", "s-chiffres");
+    if (ph === "extraction") {
+      g.appendChild(chiffre("Contacts extraits", nb(l.extraits || 0)));
+      g.appendChild(chiffre("Étudiants gardés", nb(l.a_envoyer || 0)));
+      g.appendChild(chiffre("Exclus", nb(l.exclus || 0)));
+      if (l.a_trier) g.appendChild(chiffre("À trier", nb(l.a_trier)));
+    } else if (ph === "envoi" || ph === "fini") {
+      var total = (l.recus || 0) + (l.a_envoyer || 0), pct = total ? Math.round(100 * (l.recus || 0) / total) : 0;
+      g.appendChild(chiffre("Reçus", nb(l.recus || 0), pct + " %"));
+      g.appendChild(chiffre("Restants", nb(l.a_envoyer || 0)));
+      var pk = pe.pack || {};
+      if (pk.prochain) g.appendChild(chiffre("Prochain paquet", new Date(pk.prochain * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })));
+      if (pe.non_distribues) g.appendChild(chiffre("Non distribués", nb(pe.non_distribues)));
+      var barre = el("div", "s-barre"); var rempli = el("span"); rempli.style.width = pct + "%"; barre.appendChild(rempli);
+      carte.appendChild(g); carte.appendChild(barre);
+      return;
+    } else {
+      g.appendChild(chiffre("Étudiants prêts", nb(l.a_envoyer || 0)));
+      g.appendChild(chiffre("Exclus", nb(l.exclus || 0)));
+    }
+    carte.appendChild(g);
+  }
+  function champNombre(id, nom, valeur, max, aide) {
+    var b = el("label", "s-champ");
+    b.appendChild(el("span", "s-champ-nom", nom));
+    var i = el("input", "champ"); i.type = "number"; i.id = id; i.min = "1"; if (max) i.max = String(max); i.value = valeur; i.inputMode = "numeric";
+    b.appendChild(i);
+    if (aide) b.appendChild(el("small", "aide", aide));
+    return b;
+  }
+  async function enregistrerSession(uid, corps, bouton, message) {
+    bouton.disabled = true;
+    try {
+      SESSION.d = await api("/v1/admin/membres/" + uid + "/envoi", corps, "PUT");
+      toast(message || "Enregistré.");
+      if (SESSION.uid === uid) dessinerReglages(uid);
+      chargerTableau().catch(function () {});
+    } catch (e) { if (!(await bloquante(e))) toast(e.message, true); }
+    bouton.disabled = false;
+  }
+  function dessinerReglages(uid) {
+    var d = SESSION.d, z = $("s-reglages");
+    if (!d || !z) return;
+    z.textContent = "";
+    // Date et heure
+    var c1 = el("section", "s-carte");
+    c1.appendChild(el("h3", "", "Date et heure de l'envoi"));
+    var ligne = el("div", "s-ligne");
+    var dt = el("input", "champ"); dt.type = "datetime-local"; dt.id = "s-debut";
+    if (d.debut) dt.value = pourChamp(d.debut);
+    ligne.appendChild(dt);
+    var b1 = el("button", "btn principal", "Enregistrer"); b1.type = "button";
+    b1.onclick = function () {
+      if (!dt.value) { toast("Choisissez une date et une heure.", true); return; }
+      enregistrerSession(uid, { debut: new Date(dt.value).getTime() / 1000 }, b1, "Date d'envoi enregistrée.");
+    };
+    ligne.appendChild(b1);
+    c1.appendChild(ligne);
+    c1.appendChild(el("p", "aide", d.debut ? "Programmé le " + quandLong(d.debut) + "." : "Pas encore de date : l'extraction continue en attendant."));
+    z.appendChild(c1);
+    // Rythme
+    var r = d.rythme, lim = d.limites, c2 = el("section", "s-carte");
+    c2.appendChild(el("h3", "", "Rythme d'envoi"));
+    var gr = el("div", "s-grille");
+    gr.appendChild(champNombre("s-pack", "Mails par paquet", r.pack, 500));
+    gr.appendChild(champNombre("s-dest", "Destinataires par mail (Cci)", r.destinataires, lim.destinataires, "Au plus " + nb(lim.destinataires) + " (" + lim.nom + ")"));
+    gr.appendChild(champNombre("s-attente", "Pause entre paquets (min)", r.attente, 1440));
+    gr.appendChild(champNombre("s-jour", "Personnes par jour", r.max_jour, lim.max_jour, "Limite " + lim.nom + " : " + nb(lim.max_jour)));
+    c2.appendChild(gr);
+    var b2 = el("button", "btn principal", "Enregistrer le rythme"); b2.type = "button";
+    b2.onclick = function () {
+      var v = function (id) { return parseInt($(id).value, 10); };
+      var corps = { pack: v("s-pack"), destinataires: v("s-dest"), attente: v("s-attente"), max_jour: v("s-jour") };
+      if (Object.keys(corps).some(function (k) { return !(corps[k] >= 1); })) { toast("Indiquez des nombres d'au moins 1.", true); return; }
+      enregistrerSession(uid, corps, b2, "Rythme enregistré.");
+    };
+    c2.appendChild(b2);
+    z.appendChild(c2);
+    // Langue
+    var c3 = el("section", "s-carte");
+    c3.appendChild(el("h3", "", "Langue du message"));
+    var seg = el("div", "s-segments");
+    d.langues.forEach(function (lg) {
+      var b = el("button", "s-segment" + (lg === d.langue ? " actif" : ""), NOMS_LANGUES[lg] || lg); b.type = "button";
+      b.setAttribute("aria-pressed", String(lg === d.langue));
+      b.onclick = function () {
+        if (lg === d.langue) return;
+        if (!confirm("Remplacer le message par le message type en " + (NOMS_LANGUES[lg] || lg) + " ?")) return;
+        enregistrerSession(uid, { langue: lg }, b, "Message en " + (NOMS_LANGUES[lg] || lg) + ".");
+      };
+      seg.appendChild(b);
+    });
+    c3.appendChild(seg);
+    z.appendChild(c3);
+    // Message : volet fermé par défaut
+    var c4 = el("details", "s-carte s-message");
+    var sm = el("summary"); sm.appendChild(el("h3", "", "Message")); sm.appendChild(el("span", "aide", d.objet));
+    c4.appendChild(sm);
+    var lo = el("label", "s-champ"); lo.appendChild(el("span", "s-champ-nom", "Objet"));
+    var io = el("input", "champ"); io.id = "s-objet"; io.value = d.objet; lo.appendChild(io); c4.appendChild(lo);
+    var lt = el("label", "s-champ"); lt.appendChild(el("span", "s-champ-nom", "Texte"));
+    var it = el("textarea", "champ"); it.id = "s-texte"; it.rows = 16; it.value = d.texte; lt.appendChild(it); c4.appendChild(lt);
+    c4.appendChild(el("p", "aide", "{date} devient la date limite d'inscription. [TEXTE](lien) devient un lien cliquable."));
+    var b4 = el("button", "btn principal", "Enregistrer le message"); b4.type = "button";
+    b4.onclick = function () { enregistrerSession(uid, { objet: io.value, texte: it.value, langue: d.langue }, b4, "Message enregistré."); };
+    c4.appendChild(b4);
+    z.appendChild(c4);
+  }
+  async function chargerSession(uid) {
+    var z = $("session");
+    SESSION.uid = uid; SESSION.d = null;
+    z.textContent = "";
+    z.appendChild(el("section", "s-carte s-etat", "")).id = "s-etat";
+    var reg = el("div", "s-reglages"); reg.id = "s-reglages"; reg.appendChild(el("p", "aide", "Chargement…"));
+    z.appendChild(reg);
+    dessinerEtatSession(membreEcran());
+    try {
+      var d = await api("/v1/admin/membres/" + uid + "/envoi");
+      if (SESSION.uid !== uid) return;
+      SESSION.d = d;
+      dessinerReglages(uid);
+    } catch (e) { if (!(await bloquante(e))) { reg.textContent = ""; reg.appendChild(el("p", "aide", e.message)); } }
+  }
+  function membreEcran() { return etat.t && etat.t.membres.filter(function (f) { return f.id === etat.ecranId; })[0]; }
+  function majBarre() {
+    var f = membreEcran();
+    $("ecran-nom").textContent = f ? ecoleCourte(f) + " · " + nomDe(f) : "Écrans";
+    $("ecran-etat").textContent = f ? resumeMembre(f) + (f.activite ? " · vu " + ilya(f.activite) : "") : "";
+    $("ecran-etat").className = f ? "ton-" + tonMembre(f) : "";
+    dessinerEtatSession(f);
+    var n = membresEcrans().length;
+    $("ecran-prec").disabled = $("ecran-suiv").disabled = n < 2;
+    $("patrouille").disabled = n < 2;
+  }
+  function allerEcran(uid, remplacer) {
+    if (uid == null) return;
+    if (remplacer || etat.vue === "ecrans") history.replaceState(null, "", "#ecran/" + uid);
+    else history.pushState(null, "", "#ecran/" + uid);
+    etat.ecranId = uid;
+    montrerVue("ecrans");
+    ouvrirEcran(uid);
+  }
+  async function ouvrirEcran(uid) {
+    etat.ecranId = uid;
+    ecrirePrefs();
+    dessinerEcrans();
+    chargerSession(uid);  // une seule page par ambassadeur (plus son écran en 3 étapes)
+    return;
+    var c = CADRES[uid];
+    if (!c) {
+      c = CADRES[uid] = { iframe: null, jeton: "" };
+      try {
+        var r = await api("/v1/admin/membres/" + uid + "/ecran", {});
+        c.jeton = r.jeton;
+      } catch (e) {
+        delete CADRES[uid];
+        if (!(await bloquante(e))) { toast(e.message, true); $("ecran-vide").textContent = e.message; }
+        return;
+      }
+      if (!CADRES[uid]) return;
+      var f = el("iframe", "ecran-app");
+      f.title = "Écran de l'ambassadeur";
+      f.setAttribute("allow", "clipboard-write");
+      f.src = BASE + "/?console=1&m=" + uid + "#jeton=" + encodeURIComponent(c.jeton);
+      f.addEventListener("load", function () { c.charge = true; brancherCadre(uid, f); demanderProgrammer(uid); });
+      c.iframe = f;
+      $("ecran-cadre").appendChild(f);
+      ORDRE_CADRES.push(uid);
+      while (ORDRE_CADRES.length > MAX_CADRES) {
+        var vieux = ORDRE_CADRES.shift();
+        if (vieux === uid) { ORDRE_CADRES.push(vieux); continue; }
+        if (CADRES[vieux] && CADRES[vieux].iframe) CADRES[vieux].iframe.remove();
+        fermerSessionEcran(vieux, false);
+      }
+    } else {
+      ORDRE_CADRES = ORDRE_CADRES.filter(function (x) { return x !== uid; }).concat([uid]);
+    }
+    if (etat.ecranId === uid) montrerCadre(uid);
+    if (c.charge) demanderProgrammer(uid);
+    programmerPatrouille();
+  }
+  // « Programmer » : l'écran Message de l'ambassadeur s'ouvre, date et heure prêtes.
+  function demanderProgrammer(uid) {
+    if (etat.programmerApres !== uid) return;
+    var c = CADRES[uid];
+    if (!c || !c.iframe || !c.charge) return;
+    etat.programmerApres = null;
+    patrouille.repos = Date.now() + 120000;  // la patrouille attend pendant que l'on programme
+    programmerPatrouille();
+    try { c.iframe.contentWindow.postMessage({ smartmail: "programmer" }, location.origin); } catch (e) {}
+  }
+  $("ecran-programmer").onclick = function () {
+    if (etat.ecranId == null) return;
+    etat.programmerApres = etat.ecranId;
+    demanderProgrammer(etat.ecranId);
+  };
+  function montrerCadre(uid) {
+    Object.keys(CADRES).forEach(function (k) { if (CADRES[k].iframe) CADRES[k].iframe.hidden = Number(k) !== uid; });
+    $("ecran-vide").hidden = !!(CADRES[uid] && CADRES[uid].iframe);
+  }
+  // Agir dans un écran met la patrouille en pause (30 s après le dernier geste).
+  function brancherCadre(uid, f) {
+    try {
+      var w = f.contentWindow;
+      ["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(function (ev) {
+        w.addEventListener(ev, reposPatrouille, { passive: true, capture: true });
+      });
+    } catch (e) {}
+  }
+  function fermerSessionEcran(uid, garder) {
+    if (!CADRES[uid]) return;
+    if (!garder) delete CADRES[uid];
+    ORDRE_CADRES = ORDRE_CADRES.filter(function (x) { return x !== uid; });
+    try {
+      fetch(BASE + "/v1/admin/membres/" + uid + "/ecran", { method: "DELETE", keepalive: true, headers: { Authorization: "Bearer " + etat.jeton } });
+    } catch (e) {}
+  }
+  function voisinEcran(sens) {
+    var l = membresEcrans();
+    if (!l.length) return null;
+    var i = l.map(function (f) { return f.id; }).indexOf(etat.ecranId);
+    return l[((i < 0 ? 0 : i + sens) % l.length + l.length) % l.length].id;
+  }
+  function recharger(uid) {
+    var c = CADRES[uid];
+    if (c && c.iframe) { c.iframe.remove(); }
+    if (c) { delete CADRES[uid]; ORDRE_CADRES = ORDRE_CADRES.filter(function (x) { return x !== uid; }); }
+    ouvrirEcran(uid);
+  }
+  $("ecran-prec").onclick = function () { reposPatrouille(); allerEcran(voisinEcran(-1)); };
+  $("ecran-suiv").onclick = function () { reposPatrouille(); allerEcran(voisinEcran(1)); };
+  $("ecran-recharger").onclick = function () { if (etat.ecranId != null) recharger(etat.ecranId); };
+  function basculerFormat(tel) {
+    var c = $("ecran-cadre"), on = tel != null ? tel : !c.classList.contains("telephone");
+    c.classList.toggle("telephone", on);
+    $("ecran-format").setAttribute("aria-pressed", String(on));
+    $("ecran-format").setAttribute("aria-label", on ? "Voir en pleine largeur" : "Voir en format téléphone");
+  }
+  $("ecran-format").onclick = function () { basculerFormat(); ecrirePrefs(); };
+  // Glisser sur la barre (téléphone) : écran suivant ou précédent.
+  (function () {
+    var x0 = null, y0 = 0;
+    $("ecran-barre").addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    $("ecran-barre").addEventListener("touchend", function (e) {
+      if (x0 == null) return;
+      var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) { reposPatrouille(); allerEcran(voisinEcran(dx < 0 ? 1 : -1)); }
+    }, { passive: true });
+  })();
+  document.addEventListener("keydown", function (e) {
+    if (etat.vue !== "ecrans" || etat.detailId != null || /^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "")) return;
+    if (e.key === "ArrowRight") { reposPatrouille(); allerEcran(voisinEcran(1)); }
+    if (e.key === "ArrowLeft") { reposPatrouille(); allerEcran(voisinEcran(-1)); }
+  });
+  // Un écran dont la session a expiré la redemande tout seul (une fois par minute au plus).
+  window.addEventListener("message", function (ev) {
+    if (ev.origin !== location.origin || !ev.data || ev.data.smartmail !== "ecran-expire") return;
+    Object.keys(CADRES).forEach(function (k) {
+      var c = CADRES[k];
+      if (!c.iframe || c.iframe.contentWindow !== ev.source) return;
+      var uid = Number(k);
+      if (Date.now() - (ESSAIS[uid] || 0) < 60000) return;
+      ESSAIS[uid] = Date.now();
+      recharger(uid);
+    });
+  });
+  window.addEventListener("pagehide", function () { Object.keys(CADRES).forEach(function (k) { fermerSessionEcran(Number(k), true); }); });
+
+  // Patrouille : chaque écran à tour de rôle, quelques secondes chacun.
+  function arreterMinuteriePatrouille() { clearTimeout(patrouille.minuterie); patrouille.minuterie = null; majPatrouille(); }
+  function programmerPatrouille() {
+    clearTimeout(patrouille.minuterie);
+    patrouille.minuterie = null;
+    if (patrouille.active && etat.vue === "ecrans" && membresEcrans().length > 1 && document.visibilityState === "visible") {
+      var attente = Math.max(patrouille.delai * 1000, patrouille.repos - Date.now());
+      patrouille.fin = Date.now() + attente;
+      patrouille.minuterie = setTimeout(function () { allerEcran(voisinEcran(1), true); }, attente);
+    }
+    majPatrouille();
+  }
+  function reposPatrouille() {
+    if (!patrouille.active) return;
+    patrouille.repos = Date.now() + 30000;
+    programmerPatrouille();
+  }
+  function majPatrouille() {
+    var b = $("patrouille"), barre = $("patrouille-avance"), en = !!patrouille.minuterie;
+    b.setAttribute("aria-pressed", String(patrouille.active));
+    b.classList.toggle("allume", patrouille.active);
+    b.setAttribute("aria-label", patrouille.active ? "Arrêter la patrouille" : "Patrouiller entre les écrans");
+    $("patrouille-delai").hidden = !patrouille.active;
+    barre.hidden = !en;
+    if (en) {
+      var s = barre.firstChild, reste = Math.max(0, patrouille.fin - Date.now());
+      s.style.transition = "none";
+      s.style.width = "0%";
+      void s.offsetWidth;
+      s.style.transition = "width " + reste + "ms linear";
+      s.style.width = "100%";
+    }
+  }
+  $("patrouille").onclick = function () {
+    patrouille.active = !patrouille.active;
+    patrouille.repos = 0;
+    if (patrouille.active) toast("Patrouille : un écran toutes les " + $("patrouille-delai").selectedOptions[0].textContent + ". Elle attend quand vous agissez.");
+    programmerPatrouille();
+  };
+  $("patrouille-delai").onchange = function () { patrouille.delai = Number(this.value) || 20; ecrirePrefs(); programmerPatrouille(); };
+  document.addEventListener("visibilitychange", function () { if (etat.vue === "ecrans") programmerPatrouille(); });
+
+  $("deconnexion").onclick = async function () {
+    if (!confirm("Se déconnecter de la console sur cet appareil ?")) return;
+    Object.keys(CADRES).forEach(function (k) { fermerSessionEcran(Number(k), false); });
+    try { await api("/v1/deconnexion", {}); } catch (e) {}
+    ecrireJeton(""); etat.jeton = "";
+    porte("Déconnecté", "Reconnectez-vous avec votre compte administrateur pour revenir sur la console.", BASE + "/", "Se connecter");
+  };
+
+  // ------------------------------------------------------------------ message bref
+  var minuterieToast = null;
+  function toast(texte, erreur) {
+    var t = $("toast");
+    t.textContent = texte;
+    t.className = "toast" + (erreur ? " erreur" : "");
+    t.hidden = false;
+    clearTimeout(minuterieToast);
+    minuterieToast = setTimeout(function () { t.hidden = true; }, erreur ? 6000 : 2600);
+  }
+
+  // ------------------------------------------------------------------ navigation (#ensemble, #sessions, #session/3…)
+  function montrerVue(vue) {
+    var change = etat.vue !== vue;
+    etat.vue = vue;
+    document.body.classList.toggle("sur-ecrans", vue === "ecrans");
+    if (vue !== "ecrans") arreterMinuteriePatrouille();
+    VUES.forEach(function (v) { $("v-" + v).hidden = v !== vue; });
+    document.querySelectorAll("#onglets a").forEach(function (a) {
+      if (a.getAttribute("data-vue") === vue) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    if (vue === "ecrans") {
+      if (etat.t) dessinerEcrans();
+      if (etat.ecranId != null) { montrerCadre(etat.ecranId); programmerPatrouille(); }
+      else if (etat.t) allerEcran(choisirEcran(), true);
+    }
+    if (etat.t) {
+      if (vue === "ensemble") dessinerEnsemble(etat.t);
+      if (vue === "sessions") dessinerSessions(etat.t);
+      if (vue === "membres") dessinerMembres(etat.t);
+    }
+    if (vue === "activite" && etat.jeton) chargerFil(etat.fil.length ? "maj" : "debut").catch(function () {});
+    if (change) window.scrollTo(0, 0);
+  }
+  function router() {
+    var h = (location.hash || "").replace(/^#/, ""), m = /^session\/(\d+)$/.exec(h), me = /^ecran\/(\d+)$/.exec(h);
+    if (me) {
+      if (etat.detailId != null) cacherDetail();
+      etat.ecranId = parseInt(me[1], 10);
+      montrerVue("ecrans");
+      ouvrirEcran(etat.ecranId);
+      return;
+    }
+    if (m) {
+      var id = parseInt(m[1], 10);
+      if (etat.detailId !== id) afficherDetail(id);
+      return;
+    }
+    if (etat.detailId != null) cacherDetail();
+    montrerVue("ecrans");  // la console ne montre que les écrans des ambassadeurs
+  }
+  window.addEventListener("hashchange", function (ev) {
+    var avant = String(ev.oldURL || "").split("#")[1] || "";
+    if (/^session\//.test(location.hash.slice(1)) && !/^session\//.test(avant)) etat.depuisListe = true;
+    router();
+  });
+
+  // ------------------------------------------------------------------ démarrage
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register(BASE + "/sw.js").catch(function () {});
+  (async function () {
+    var h = (location.hash || "").replace(/^#/, "");
+    etat.vue = "ecrans";
+    lirePrefs();
+    if (!(await retrouverJeton())) {
+      porte("Console Smart Mail", "Connectez-vous à Smart Mail avec votre compte administrateur : la console s'ouvre ensuite toute seule.", BASE + "/#admin", "Se connecter");
+      return;
+    }
+    montrerVue(etat.vue);
+    router();
+    tour(true);
+  })();
+})();

@@ -1,0 +1,22 @@
+# Outil de vérification LinkedIn : pilote le Chrome d'Hippolyte du conteneur de prospection (déjà connecté).
+# Il partage le réseau de ce conteneur pour joindre son port de pilotage (127.0.0.1:9334).
+# Interface : port 8765 de ce réseau, joint par tunnel SSH (voir « Vérif LinkedIn (VPS).command »).
+services:
+  verifs:
+    build:
+      context: ..
+      dockerfile: deploiement/Dockerfile
+    restart: unless-stopped
+    network_mode: "container:prospection-prospection-1"
+    environment:
+      - VERIF_CDP=http://127.0.0.1:9334
+      - VERIF_FACTEUR=50       # pauses divisées par 50 (compte de test)
+      - VERIF_ONGLETS=16       # 16 onglets, freinés automatiquement si le serveur sature
+      - VERIF_VERROU=/prospection-state/verif-9334.lock
+    volumes:
+      - ./data:/data                                   # résultats, clé Anthropic
+      - deploiement_donnees:/smartmail                 # base Smart Mail (ouverte en lecture seule)
+      - /home/ubuntu/prospection/state:/prospection-state   # verrou partagé avec la garde de la prospection
+volumes:
+  deploiement_donnees:
+    external: true

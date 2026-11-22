@@ -1,0 +1,11 @@
+services:
+  prospection:
+    build: .
+    restart: unless-stopped
+    shm_size: 1gb
+    volumes:
+      - ./data:/data
+      - ./.env-calls:/app/.env-calls:ro
+      - ./state:/app/state
+    ports:
+      - "127.0.0.1:6080:6080"   # remote view of the Chromes, reachable only through an SSH tunnel

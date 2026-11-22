@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reetma | Technology consulting in agentic AI, data and cloud</title>
+    <meta name="description" content="Reetma is a technology consulting firm. We map your processes, then design, build and run the AI agents, data pipelines and cloud infrastructure that automate them, with the team each project needs.">
+    <meta name="author" content="Pierre Cazaban" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#305D55" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="REETMA" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/reetma-icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Reetma" />
+    <meta property="og:url" content="https://reetma-agency.com/" />
+    <meta property="og:image" content="https://reetma-agency.com/og-image.png">
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://reetma-agency.com/og-image.png">
+
+    <style>
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #FFFFFF;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      #app-loader.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-loader img {
+        height: 44px;
+        width: auto;
+        
+      }
+    </style>
+    <meta property="og:title" content="Reetma | Technology consulting in agentic AI, data and cloud">
+    <meta name="twitter:title" content="Reetma | Technology consulting in agentic AI, data and cloud">
+    <meta property="og:description" content="Reetma is a technology consulting firm. We map your processes, then design, build and run the AI agents, data pipelines and cloud infrastructure that automate them, with the team each project needs.">
+    <meta name="twitter:description" content="Reetma is a technology consulting firm. We map your processes, then design, build and run the AI agents, data pipelines and cloud infrastructure that automate them, with the team each project needs.">
+</head>
+
+  <body>
+    <div id="app-loader"><img src="/reetma-logo.png" alt="REETMA" /></div>
+    <!-- Without JavaScript the loader would cover the page prerendered into #root by scripts/prerender.mjs -->
+    <noscript><style>#app-loader{display:none}</style></noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

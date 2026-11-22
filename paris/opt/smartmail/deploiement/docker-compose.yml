@@ -1,0 +1,33 @@
+# Smart Mail sur le serveur de Paris (22/11) : l'application + Caddy (HTTPS automatique).
+# Ce serveur reçoit les nouveaux comptes ; le premier (OVH) garde les comptes déjà connectés.
+services:
+  smartmail:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    # /data garde la base : comptes, sessions des appareils et sessions de messagerie (chiffrées).
+    volumes:
+      - donnees:/data
+    # Mesuré le 22/11 : 1,7 Go par navigateur. 8 envois + 1 collecte + l'application = 19 Go.
+    mem_limit: 22g
+    memswap_limit: 26g
+    shm_size: "2gb"
+    stop_grace_period: 60s
+    expose:
+      - "8000"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAINE=${DOMAINE}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-donnees:/data
+    depends_on:
+      - smartmail
+volumes:
+  donnees:
+  caddy-donnees:

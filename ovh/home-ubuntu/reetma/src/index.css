@@ -1,0 +1,520 @@
+@import "@fontsource/inter/300.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/montserrat/600.css";
+@import "@fontsource/montserrat/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide scrollbar globally while preserving scroll */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  scroll-padding-top: 80px;
+}
+html::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* REETMA AI SUITE - Apple-style Modern Design System */
+
+@layer base {
+  :root {
+    /* Clean Apple-style foundation */
+    --background: 40 50% 98%;
+    --foreground: 169 31% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 169 31% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 169 31% 18%;
+
+    /* Primary - Modern indigo */
+    --primary: 169 32% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 38 45% 95%;
+    --secondary-foreground: 169 25% 22%;
+
+    --muted: 38 45% 95%;
+    --muted-foreground: 165 6% 44%;
+
+    --accent: 24 87% 95%;
+    --accent-foreground: 169 31% 18%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 36 28% 88%;
+    --input: 36 28% 88%;
+    --ring: 169 32% 28%;
+
+    --radius: 0.75rem;
+
+    /* Agent colors - vibrant modern palette */
+    --agent-flow: 262 83% 58%;
+    --agent-brain: 271 91% 65%;
+    --agent-support: 173 80% 40%;
+    --agent-hr: 340 82% 52%;
+    --agent-compliance: 25 95% 53%;
+    --agent-sales: 142 76% 36%;
+    --agent-data: 199 89% 48%;
+
+    /* Sidebar */
+    --sidebar-background: 40 50% 97%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 169 32% 28%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 38 45% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 36 28% 88%;
+    --sidebar-ring: 169 32% 28%;
+
+    /* School campaign */
+    --school-primary: 169 32% 28%;
+    --school-primary-foreground: 0 0% 100%;
+    --school-background: 40 50% 98%;
+    --school-foreground: 169 31% 18%;
+    --school-muted: 165 6% 44%;
+    --school-surface: 38 45% 95%;
+    --school-border: 36 28% 88%;
+    --school-shadow: 0 22px 55px -28px hsl(169 32% 28% / 0.28);
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 169 32% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 60%;
+
+    --accent: 240 4% 15%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 169 32% 28%;
+
+    /* Sidebar dark */
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 169 32% 28%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 16%;
+    --sidebar-ring: 169 32% 28%;
+  }
+}
+
+.school-page {
+  --primary: var(--school-primary);
+  --primary-foreground: var(--school-primary-foreground);
+  --foreground: var(--school-foreground);
+  --muted-foreground: var(--school-muted);
+  --secondary: var(--school-surface);
+  --card: 0 0% 100%;
+  --border: var(--school-border);
+}
+
+.school-funding-card {
+  border-radius: 6px;
+  box-shadow: var(--school-shadow);
+}
+
+.school-grid {
+  background-image:
+    linear-gradient(hsl(var(--school-primary) / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--school-primary) / 0.025) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, black, transparent 92%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .school-page * {
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100vh;
+    overflow-anchor: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 85%);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 70%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Prevent browser scroll anchoring “teleport” during expanding sections */
+.no-scroll-anchoring {
+  overflow-anchor: none;
+}
+
+/* Workflow canvas stability fix (keeps fixed-viewport apps scrollable inside panels)
+   IMPORTANT: avoid forcing flex-shrink:0 on direct children, it breaks nested scrolling.
+*/
+.workflow-canvas-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.workflow-canvas-container > * {
+  min-height: 0;
+}
+
+.workflow-canvas-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+}
+
+/* Text gradient - Violet to Light Blue */
+.text-gradient {
+  background: linear-gradient(135deg, hsl(260 70% 55%), hsl(200 90% 55%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== CLOUD-INSPIRED ANIMATIONS ===== */
+
+/* Base cloud keyframes */
+@keyframes fade-up {
+  from { 
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cloud-float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-8px) translateX(4px); }
+  50% { transform: translateY(-4px) translateX(-4px); }
+  75% { transform: translateY(-12px) translateX(2px); }
+}
+
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(10px) scale(1.02); }
+}
+
+@keyframes cloud-morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50% { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+  75% { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
+}
+
+@keyframes cloud-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes cloud-fade-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
+  }
+}
+
+/* Animation classes */
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out forwards;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.5s ease-out 0.1s forwards;
+  opacity: 0;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 0.5s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.animate-fade-up-delay-3 {
+  animation: fade-up 0.5s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+.animate-fade-up-delay-4 {
+  animation: fade-up 0.5s ease-out 0.4s forwards;
+  opacity: 0;
+}
+
+.animate-cloud-float {
+  animation: cloud-float 8s ease-in-out infinite;
+}
+
+.animate-cloud-drift {
+  animation: cloud-drift 6s ease-in-out infinite;
+}
+
+.animate-cloud-morph {
+  animation: cloud-morph 12s ease-in-out infinite;
+}
+
+.animate-cloud-pulse {
+  animation: cloud-pulse 4s ease-in-out infinite;
+}
+
+.animate-cloud-fade-in {
+  animation: cloud-fade-in 0.6s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Cloud shape utilities */
+.cloud-shape {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: cloud-morph 12s ease-in-out infinite;
+}
+
+.cloud-blob {
+  position: relative;
+}
+
+.cloud-blob::before,
+.cloud-blob::after {
+  content: '';
+  position: absolute;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: cloud-morph 12s ease-in-out infinite;
+  z-index: -1;
+}
+
+.cloud-blob::before {
+  inset: -20%;
+  background: linear-gradient(135deg, hsl(210 30% 70% / 0.1), hsl(190 40% 70% / 0.1));
+  animation-delay: -2s;
+}
+
+.cloud-blob::after {
+  inset: -10%;
+  background: linear-gradient(225deg, hsl(190 40% 70% / 0.08), hsl(210 30% 70% / 0.08));
+  animation-delay: -4s;
+}
+
+/* Cloud background decorations */
+.cloud-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.cloud-bg::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 200px;
+  background: radial-gradient(ellipse, hsl(210 30% 85% / 0.2), transparent 70%);
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: cloud-float 10s ease-in-out infinite, cloud-morph 15s ease-in-out infinite;
+  top: -50px;
+  right: -100px;
+  z-index: 0;
+}
+
+.cloud-bg::after {
+  content: '';
+  position: absolute;
+  width: 250px;
+  height: 180px;
+  background: radial-gradient(ellipse, hsl(190 40% 80% / 0.15), transparent 70%);
+  border-radius: 40% 60% 70% 30% / 40% 70% 30% 60%;
+  animation: cloud-float 12s ease-in-out infinite reverse, cloud-morph 18s ease-in-out infinite reverse;
+  bottom: -40px;
+  left: -80px;
+  z-index: 0;
+}
+
+.dark .cloud-bg::before {
+  background: radial-gradient(ellipse, hsl(190 60% 50% / 0.1), transparent 70%);
+}
+
+.dark .cloud-bg::after {
+  background: radial-gradient(ellipse, hsl(210 40% 50% / 0.08), transparent 70%);
+}
+
+/* Widget cloud wrapper */
+.widget-cloud {
+  position: relative;
+}
+
+.widget-cloud::before {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  background: linear-gradient(135deg, hsl(210 30% 90% / 0.3), hsl(190 40% 85% / 0.2));
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: cloud-morph 10s ease-in-out infinite, cloud-pulse 6s ease-in-out infinite;
+  z-index: -1;
+  filter: blur(20px);
+}
+
+.dark .widget-cloud::before {
+  background: linear-gradient(135deg, hsl(190 50% 40% / 0.15), hsl(210 40% 35% / 0.1));
+}
+
+/* Scroll animation utilities with cloud style */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-animate.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.scroll-animate-left {
+  opacity: 0;
+  transform: translateX(-30px) scale(0.95);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-animate-left.visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.scroll-animate-right {
+  opacity: 0;
+  transform: translateX(30px) scale(0.95);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-animate-right.visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.scroll-animate-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-animate-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Stagger children animation with cloud feel */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.stagger-children.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(6) { transition-delay: 500ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(7) { transition-delay: 600ms; opacity: 1; transform: translateY(0) scale(1); }
+.stagger-children.visible > *:nth-child(8) { transition-delay: 700ms; opacity: 1; transform: translateY(0) scale(1); }
+
+/* Workflow Canvas Animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

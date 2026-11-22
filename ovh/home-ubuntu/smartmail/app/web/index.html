@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Smart Mail</title>
+  <meta name="description" content="Identifiez les étudiants de votre établissement et envoyez-leur un message depuis votre adresse.">
+  <meta name="theme-color" content="#FFFFFF">
+  <script>window.BASE = location.pathname.indexOf("/tool") === 0 ? "/tool" : ""; if (BASE) document.write('<base href="/tool/">');</script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icones/favicon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Smart Mail">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="app.css?v=44">
+</head>
+<body data-etape="0">
+  <div class="bandeau-demo" id="badge-demo" hidden>Environnement de démonstration — annuaire fictif, aucun message n'est envoyé.</div>
+
+  <div class="hors-ligne" id="hors-ligne" role="status" hidden>Pas de connexion au serveur. Vous restez connecté, nouvel essai en cours…</div>
+  <header class="barre">
+    <div class="barre-int">
+      <div class="marque"><span class="mono">SM</span><span class="nom">Smart Mail</span></div>
+      <ol class="etapes-nav" aria-label="Étapes">
+        <li data-n="1"><span>1</span>Destinataires</li>
+        <li data-n="2"><span>2</span>Message</li>
+        <li data-n="3"><span>3</span>Envoi</li>
+      </ol>
+      <div class="barre-droite">
+        <button class="lien" id="installer" hidden>Installer l'application</button>
+        <button class="lien" id="ouvrir-test" hidden>Tester l'envoi</button>
+        <button class="lien discret" id="ouvrir-admin" hidden>Administration<span class="pastille-alerte" id="admin-badge" hidden></span></button>
+        <button class="lien discret" id="ouvrir-parametres" hidden>Paramètres<span class="pastille-alerte badge-mobile" id="param-badge" hidden></span></button>
+        <span class="compte" id="compte-barre"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- Ambassadeur : seulement la date de l'envoi (le reste est préparé depuis la console) -->
+    <section class="ecran simple" id="e-simple" hidden>
+      <div class="simple-int">
+        <div class="carte" id="s-choix">
+          <h1>Votre envoi</h1>
+          <p class="aide">Choisissez quand le message partira à vos étudiants : Smart Mail s'occupe de tout le reste.</p>
+          <label class="s-label" for="s-date">Date et heure de l'envoi</label>
+          <input class="champ s-date" type="datetime-local" id="s-date">
+          <button class="btn principal large" id="s-programmer" type="button">C'est parti</button>
+          <label class="s-cgu"><input type="checkbox" id="s-cgu"><span>J'accepte les <a href="conditions.html" target="_blank" rel="noopener">conditions d'utilisation</a> et je certifie que mon établissement a autorisé cet envoi.</span></label>
+          <p class="s-erreur" id="s-erreur" role="alert"></p>
+        </div>
+        <div class="carte s-alerte" id="s-reconnecter" hidden>
+          <h1>Reconnectez votre messagerie</h1>
+          <p class="aide">Votre messagerie a fermé la connexion de Smart Mail. Reconnectez-vous pour que la préparation de votre envoi continue.</p>
+          <button class="btn principal large" id="s-reconnexion" type="button">Se reconnecter</button>
+        </div>
+        <div class="carte s-ok" id="s-ok" hidden>
+          <svg class="s-anim" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-16"/></svg>
+          <h1>Tout est prêt</h1>
+          <p class="s-quand" id="s-quand"></p>
+          <p class="aide">Vous pouvez fermer l'application : tout se fait automatiquement.</p>
+          <button class="btn principal large" id="s-espace" type="button">Mon espace ambassadeur</button>
+          <button class="btn secondaire large" id="s-modifier" type="button">Modifier</button>
+          <p class="s-erreur" id="s-espace-erreur" role="alert"></p>
+        </div>
+        <button class="lien discret s-sortir" id="s-deconnexion" type="button">Se déconnecter</button>
+      </div>
+    </section>
+
+    <!-- Connexion -->
+    <section class="ecran connexion" id="e-connexion" hidden>
+      <div class="pitch">
+        <h1>Smart Mail</h1>
+        <p class="lead">Identifiez les étudiants de votre établissement dans l'annuaire de votre messagerie, puis envoyez-leur un message depuis votre propre adresse.</p>
+        <ul class="points">
+          <li><b>Votre messagerie d'école, rien d'autre.</b> Avec Outlook et Gmail, votre mot de passe sert à la connexion et n'est jamais enregistré.</li>
+          <li><b>Tri automatique.</b> Personnel, services, associations et contacts personnels sont exclus.</li>
+          <li><b>Envoi en arrière-plan.</b> Les messages partent au rythme choisi, même ordinateur éteint.</li>
+        </ul>
+      </div>
+      <div class="carte carte-connexion">
+        <h2>Connexion</h2>
+        <form id="form-demo" class="formulaire" hidden>
+          <p class="aide">Utilisez le compte de messagerie de votre établissement.</p>
+          <label class="champ"><span class="etiquette">Adresse e-mail</span>
+            <input id="email-demo" type="email" autocomplete="email" required value="camille.martin@demo-ecole.fr"></label>
+          <button class="btn principal large" type="submit">Se connecter</button>
+          <p class="aide">Démonstration : la même adresse retrouve le même compte, sur tous vos appareils.</p>
+        </form>
+
+        <div id="bloc-outlook" class="formulaire" hidden>
+          <button class="btn principal large btn-outlook" id="connexion-outlook" type="button">
+            <svg viewBox="0 0 21 21" width="18" height="18" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+            Se connecter avec Outlook
+          </button>
+          <button class="btn secondaire large btn-outlook" id="connexion-gmail" type="button">
+            <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.2C1 16.5 0 20.1 0 24s1 7.5 2.7 10.8l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.2C6.6 42.6 14.6 48 24 48z"/></svg>
+            Se connecter avec Gmail
+          </button>
+          <button class="btn secondaire large btn-outlook" id="connexion-universelle" type="button">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            Connexion universelle
+          </button>
+          <form id="form-universel" class="formulaire" hidden>
+            <p class="aide">Pour toute autre messagerie d'école (webmail de votre université : Zimbra, Roundcube…).</p>
+            <label class="champ"><span class="etiquette">Adresse e-mail de l'école</span>
+              <input id="univ-email" type="email" autocomplete="username" required></label>
+            <label class="champ"><span class="etiquette">Mot de passe de la messagerie</span>
+              <input id="univ-mdp" type="password" autocomplete="current-password" required></label>
+            <details class="aide"><summary>Identifiant différent de l'adresse ?</summary>
+              <label class="champ"><span class="etiquette">Identifiant (numéro étudiant, login…)</span>
+                <input id="univ-identifiant" type="text" autocomplete="off"></label>
+            </details>
+            <button class="btn principal large" id="univ-valider" type="submit">Se connecter</button>
+            <p class="aide">Votre mot de passe est gardé chiffré sur le serveur : il sert uniquement à envoyer les messages depuis votre adresse. Vous pouvez retirer l'accès à tout moment.</p>
+            <p class="attention" id="univ-erreur" role="alert" hidden></p>
+          </form>
+          <p class="aide">La vraie page de connexion de votre messagerie s'ouvre ici : adresse, mot de passe, validation sur votre téléphone si on vous la demande.</p>
+          <p class="attention" id="connexion-erreur" role="alert" hidden></p>
+        </div>
+        <p class="mention">Vous restez connecté sur cet appareil jusqu'à ce que vous vous déconnectiez.</p>
+      </div>
+      <div class="carte installer" id="carte-installer" hidden>
+        <div>
+          <h2>Installer sur l'écran d'accueil</h2>
+          <p class="aide">Smart Mail s'ouvre alors comme une application, et vous restez connecté.</p>
+        </div>
+        <button class="btn secondaire" id="installer-carte" type="button">Installer</button>
+      </div>
+    </section>
+
+    <!-- 1. Objectif -->
+    <section class="ecran" id="e-objectif" hidden>
+      <div class="entete">
+        <p class="sur-titre" id="bonjour"></p>
+        <h1>Rechercher des étudiants</h1>
+        <p class="lead">Smart Mail extrait d'abord tout l'annuaire de votre école, gratuitement. Ensuite, un bouton « Garder seulement les étudiants » ne retient que les étudiants.</p>
+      </div>
+      <div class="carte reprise" id="reprise" hidden>
+        <div>
+          <h2>Recherche en cours</h2>
+          <p class="aide" id="reprise-texte"></p>
+        </div>
+        <div class="reprise-actions">
+          <button class="btn secondaire" id="nouvelle">Nouvelle recherche</button>
+          <button class="btn principal" id="reprendre">Reprendre</button>
+        </div>
+      </div>
+      <div class="carte" id="carte-objectif">
+        <label class="etiquette" for="objectif">Nombre d'étudiants</label>
+        <div class="ligne-objectif">
+          <div class="saisie-nombre">
+            <button class="pas" id="moins" aria-label="Diminuer">−</button>
+            <input id="objectif" type="number" inputmode="numeric" min="10" step="50" value="500">
+            <button class="pas" id="plus" aria-label="Augmenter">+</button>
+          </div>
+          <div class="segments" id="raccourcis">
+            <button class="puce" data-v="100">100</button><button class="puce" data-v="500">500</button>
+            <button class="puce" data-v="1000">1 000</button><button class="puce" data-v="2000">2 000</button>
+          </div>
+        </div>
+        <p class="aide">Seules les adresses d'étudiants sont retenues.</p>
+      </div>
+      <div class="pied">
+        <button class="btn principal" id="start">Lancer la recherche</button>
+      </div>
+    </section>
+
+    <!-- Analyse : rien n'est affiché -->
+    <section class="ecran" id="e-lancement" hidden>
+      <div class="entete">
+        <h1>Analyse de l'annuaire</h1>
+        <p class="lead">Smart Mail examine un échantillon d'une trentaine de contacts pour identifier le format des adresses étudiantes de votre établissement.</p>
+      </div>
+      <div class="carte">
+        <ul class="etapes" id="etapes">
+          <li data-e="1"><span class="etat"></span>Lecture de l'échantillon</li>
+          <li data-e="2"><span class="etat"></span>Identification des formats d'adresse</li>
+          <li data-e="3"><span class="etat"></span>Distinction étudiants / personnel</li>
+        </ul>
+        <p class="note">Aucun contact n'est ajouté pendant cette étape.</p>
+      </div>
+    </section>
+
+    <!-- Recherche -->
+    <section class="ecran" id="e-recolte" hidden>
+      <div class="entete ligne">
+        <div>
+          <h1>Destinataires</h1>
+          <p class="statut"><span class="pastille" id="pouls"></span><span id="statut-texte">Recherche en cours</span></p>
+        </div>
+      </div>
+      <button class="bandeau-lien" id="bandeau-envoi" type="button" hidden></button>
+      <button class="lien bandeau-pause" id="bandeau-envoi-pause" type="button" hidden>Mettre l'envoi en pause</button>
+      <div class="indicateurs">
+        <div class="indic"><span class="libelle">Contacts extraits</span><span class="valeur" id="extraits">0</span></div>
+        <button class="indic indic-bouton" id="modifier-objectif" type="button" aria-label="Modifier l'objectif de la recherche">
+          <span class="libelle">Étudiants identifiés</span><span class="valeur"><span id="trouves">0</span><span class="sur"> / <span id="objectif-rappel">500</span></span></span><span class="indic-lien">Modifier l'objectif</span>
+        </button>
+        <button class="indic indic-bouton" id="voir-exclus" type="button" aria-label="Voir les personnes exclues">
+          <span class="libelle">Exclus</span><span class="valeur" id="ecartes">0</span><span class="indic-lien">Voir la liste</span>
+        </button>
+      </div>
+      <form class="carte objectif-edition" id="objectif-edition" hidden>
+        <label class="champ"><span class="etiquette">Objectif de la recherche (nombre d'étudiants)</span>
+          <input id="objectif-nouveau" type="number" inputmode="numeric" min="1" step="100"></label>
+        <p class="aide" id="objectif-aide"></p>
+        <div class="segments" id="objectif-raccourcis">
+          <button class="puce" type="button" data-plus="1000">+1 000</button><button class="puce" type="button" data-plus="5000">+5 000</button><button class="puce" type="button" data-plus="20000">+20 000</button>
+        </div>
+        <div class="pied">
+          <button class="btn secondaire" type="button" id="objectif-annuler">Annuler</button>
+          <button class="btn principal" type="submit" id="objectif-ok">Enregistrer</button>
+        </div>
+      </form>
+      <div class="carte tri" id="carte-tri" hidden>
+        <div class="tri-texte">
+          <h2>Garder seulement les étudiants</h2>
+          <p class="aide">L'IA étudie tout l'annuaire extrait pour comprendre la logique de votre école, puis ne garde que les étudiants. Les autres vont dans « Exclus », où vous pouvez les revoir.</p>
+          <div class="barre-tri" id="barre-tri" hidden><span id="barre-tri-plein"></span></div>
+          <p class="aide tri-etat" id="tri-etat" aria-live="polite"></p>
+          <p class="aide" id="tri-logique"></p>
+        </div>
+        <button class="btn principal" id="lancer-tri" type="button">Garder seulement les étudiants</button>
+      </div>
+      <div class="regle"><span class="libelle">Règle détectée</span><span id="logique-resume"></span></div>
+      <div class="tableau">
+        <div class="tableau-tete collecte-tete"><span>Nom</span><span>Adresse</span><span class="col-source">Méthode</span><span></span></div>
+        <ul class="liste liste-collecte" id="liste" aria-live="polite"></ul>
+      </div>
+      <div class="pied">
+        <button class="btn secondaire" id="pause">Mettre en pause</button>
+        <button class="btn principal" id="vers-envoi" hidden>Rédiger le message</button>
+      </div>
+    </section>
+
+    <!-- 2. Message -->
+    <section class="ecran" id="e-envoi" hidden>
+      <div class="entete">
+        <h1>Message</h1>
+        <p class="lead">Destinataires : <b id="nb-dest">0</b> étudiants, depuis votre adresse.</p>
+      </div>
+      <div class="carte formulaire">
+        <label class="champ"><span class="etiquette">Langue du message</span>
+          <select id="langue">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+          </select>
+        </label>
+        <label class="champ"><span class="etiquette">Objet</span><input id="objet" type="text" value="The AI Certification: enroll before {date}"></label>
+        <label class="champ"><span class="etiquette">Message</span><textarea id="message" rows="16">Dear Students,
+
+AI is becoming one of the most valuable skills employers look for: enroll before {date}.
+
+In 3 hours, you build your own AI agent and get certified. You will add your certificate directly to your LinkedIn profile and CV, giving recruiters visible proof of your practical AI experience.
+
+[GET YOUR AI CERTIFICATION](https://the-ai-certification.com/school)
+
+71% of leaders would rather hire a less experienced candidate with AI skills than a more experienced one without them.
+
+Places are limited. Reserve your place and start the certification → https://the-ai-certification.com/school
+
+As AI becomes increasingly important across industries, demonstrating these skills can significantly strengthen your profile when applying for internships and graduate positions.
+
+Best regards,
+The AI Certification team</textarea></label>
+        <p class="aide" id="apercu-date"></p>
+        <p class="aide" id="texte-mode">Le message part en importance élevée, depuis votre adresse. Ceux trouvés plus tard le recevront au prochain envoi, jamais deux fois.</p>
+        <div class="ligne-test">
+          <button class="btn secondaire" id="tester-envoi" type="button">M'envoyer un test</button>
+          <span class="aide" id="test-etat" aria-live="polite"></span>
+        </div>
+      </div>
+      <div class="pied">
+        <button class="btn secondaire" id="retour-recolte">Retour à la collecte</button>
+        <button class="btn principal" id="vers-preparation" type="button">Suivant : l'envoi</button>
+      </div>
+    </section>
+
+    <!-- 3. Envoi -->
+    <section class="ecran" id="e-envoye" hidden>
+      <div class="entete">
+        <p class="statut"><span class="pastille" id="pouls-envoi"></span><span id="statut-envoi">En cours</span></p>
+        <h1 id="titre-envoi">Envoi en cours</h1>
+        <button class="bandeau-lien" id="bandeau-recherche" type="button" hidden></button>
+        <p class="lead">L'envoi se poursuit sur le serveur, depuis votre adresse Outlook. Vous pouvez fermer l'app ou éteindre votre appareil.</p>
+      </div>
+      <div id="preparer-envoi" hidden>
+      <div class="carte debut-envoi" id="carte-debut">
+        <div class="packs-tete"><h2>Quand envoyer ?</h2><span class="packs-badge">Date et heure</span></div>
+        <div class="choix-debut" role="radiogroup" aria-label="Début de l'envoi">
+          <label class="option-debut"><input type="radio" name="debut" value="maintenant" checked> Tout de suite</label>
+          <label class="option-debut"><input type="radio" name="debut" value="programme"> Programmer une date et une heure</label>
+        </div>
+        <div id="debut-programme" hidden>
+          <label class="champ"><span class="etiquette">Commencer le</span><input id="debut-quand" type="datetime-local"></label>
+        </div>
+        <p class="aide" id="debut-aide" aria-live="polite"></p>
+      </div>
+      <div class="carte packs" id="rythme">
+        <div class="packs-tete">
+          <h2>Envoi par packs</h2>
+          <span class="packs-badge">Rythme d'envoi</span>
+        </div>
+        <p class="aide">Smart Mail envoie un pack de mails, fait une pause, puis envoie le pack suivant. Chaque mail part en Cci à plusieurs élèves : aucun ne voit les autres. <span id="pk-limites"></span></p>
+        <div class="packs-reglages">
+          <div class="reglage">
+            <span class="etiquette" id="lbl-pack">Mails par pack</span>
+            <div class="pas-groupe" role="group" aria-labelledby="lbl-pack">
+              <button type="button" class="pas-btn" data-cible="pk-pack" data-d="-1" aria-label="1 mail de moins">−</button>
+              <input id="pk-pack" type="number" inputmode="numeric" min="1" max="500" aria-labelledby="lbl-pack">
+              <button type="button" class="pas-btn" data-cible="pk-pack" data-d="1" aria-label="1 mail de plus">+</button>
+            </div>
+          </div>
+          <div class="reglage">
+            <span class="etiquette" id="lbl-attente">Attente entre deux packs (min)</span>
+            <div class="pas-groupe" role="group" aria-labelledby="lbl-attente">
+              <button type="button" class="pas-btn" data-cible="pk-attente" data-d="-5" aria-label="5 minutes de moins">−</button>
+              <input id="pk-attente" type="number" inputmode="numeric" min="1" max="1440" aria-labelledby="lbl-attente">
+              <button type="button" class="pas-btn" data-cible="pk-attente" data-d="5" aria-label="5 minutes de plus">+</button>
+            </div>
+          </div>
+          <div class="reglage">
+            <span class="etiquette" id="lbl-dest">Destinataires par mail</span>
+            <div class="pas-groupe" role="group" aria-labelledby="lbl-dest">
+              <button type="button" class="pas-btn" data-cible="pk-dest" data-d="-50" aria-label="50 destinataires de moins">−</button>
+              <input id="pk-dest" type="number" inputmode="numeric" min="1" max="495" aria-labelledby="lbl-dest">
+              <button type="button" class="pas-btn" data-cible="pk-dest" data-d="50" aria-label="50 destinataires de plus">+</button>
+            </div>
+          </div>
+          <div class="reglage">
+            <span class="etiquette" id="lbl-max">Maximum par jour</span>
+            <div class="pas-groupe" role="group" aria-labelledby="lbl-max">
+              <button type="button" class="pas-btn" data-cible="pk-max" data-d="-500" aria-label="500 de moins">−</button>
+              <input id="pk-max" type="number" inputmode="numeric" min="1" max="9995" aria-labelledby="lbl-max">
+              <button type="button" class="pas-btn" data-cible="pk-max" data-d="500" aria-label="500 de plus">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="frise" id="pk-frise" aria-hidden="true"></div>
+        <p class="pk-resume" id="pk-resume" aria-live="polite"></p>
+        <p class="aide">Envoi de <span id="pk-plage"></span>. <button class="lien" id="modifier-param" type="button">Changer la plage horaire</button></p>
+        <p class="attention" id="pk-alerte" hidden></p>
+      </div>
+      <div class="carte recapitulatif">
+        <h2>Récapitulatif</h2>
+        <dl id="recap">
+          <div><dt>Début</dt><dd id="r-debut">Tout de suite</dd></div>
+          <div><dt>Destinataires</dt><dd id="r-dest"></dd></div>
+          <div><dt>Mode</dt><dd id="r-mode"></dd></div>
+          <div><dt>Rythme</dt><dd id="r-rythme"></dd></div>
+          <div><dt>Durée estimée</dt><dd id="r-duree"></dd></div>
+          <div><dt>Expéditeur</dt><dd id="r-exp"></dd></div>
+        </dl>
+      </div>
+      <div class="pied">
+        <button class="btn secondaire" id="retour-message" type="button">Modifier le message</button>
+        <button class="btn principal" id="lancer-envoi">Lancer l'envoi</button>
+      </div>
+      </div>
+      <div class="indicateurs">
+        <div class="indic"><span class="libelle">Envoyés</span><span class="valeur" id="envoyes">0</span></div>
+        <div class="indic"><span class="libelle">Restants</span><span class="valeur" id="restants">0</span></div>
+        <div class="indic" id="indic-verifier" hidden><span class="libelle">À vérifier</span><span class="valeur" id="a-verifier">0</span></div>
+        <div class="indic"><span class="libelle">Fin estimée</span><span class="valeur petite" id="fin-estimee"></span></div>
+      </div>
+      <p class="aide" id="envoi-message" aria-live="polite"></p>
+      <p class="aide" id="envoi-nd" hidden></p>
+      <div class="parties-tete">
+        <div class="segments parties" id="parties" role="tablist" aria-label="Élèves">
+          <button class="option actif" type="button" role="tab" aria-selected="true" data-partie="a-envoyer">À envoyer <b id="nb-a-envoyer">0</b></button>
+          <button class="option" type="button" role="tab" aria-selected="false" data-partie="recus">Reçu <b id="nb-recus">0</b></button>
+        </div>
+        <button class="lien" id="collecter-plus" type="button">Collecter d'autres élèves</button>
+      </div>
+      <div class="tableau" id="tableau-envoi">
+        <div class="tableau-tete envoi-tete"><span></span><span>Nom</span><span>Adresse</span><span class="col-source">État</span></div>
+        <ul class="liste liste-envoi" id="liste-a-envoyer" aria-live="polite"></ul>
+        <ul class="liste liste-envoi" id="liste-recus" aria-live="polite" hidden></ul>
+      </div>
+      <p class="aide" id="aide-parties">« À envoyer » se remplit avec la collecte. Une personne qui a reçu le message passe dans « Reçu » et ne sera plus jamais collectée ni contactée, par aucun ambassadeur.</p>
+      <p class="aide" id="envoi-verifier-aide" hidden>« À vérifier » : la connexion a été coupée au moment du départ d'un mail. Il n'est jamais renvoyé automatiquement : regardez vos Éléments envoyés dans Outlook.</p>
+      <p class="note demo-seulement" hidden>Démonstration : aucun message n'est réellement envoyé.</p>
+      <div class="pied">
+        <button class="btn secondaire" id="voir-collecte" type="button" hidden>Collecte</button>
+        <button class="btn secondaire" id="recommencer">Nouvelle recherche</button>
+        <button class="btn secondaire" id="envoi-maintenant" type="button" hidden>Commencer maintenant</button>
+        <button class="btn principal" id="pause-envoi" type="button" hidden>Mettre en pause</button>
+      </div>
+    </section>
+    <!-- Paramètres -->
+    <section class="ecran" id="e-parametres" hidden>
+      <div class="entete">
+        <h1>Paramètres</h1>
+        <p class="lead">Ces réglages sont enregistrés dans votre compte et s'appliquent à vos prochains envois.</p>
+      </div>
+      <div class="carte formulaire">
+        <h2>Envoi par packs</h2>
+        <div class="grille">
+          <label class="champ"><span class="etiquette">Mails par pack</span><input id="p-pack" type="number" min="1" max="500" inputmode="numeric">
+            <span class="aide">Envoyés à la suite.</span></label>
+          <label class="champ"><span class="etiquette">Attente entre deux packs (minutes)</span><input id="p-attente" type="number" min="1" max="1440" inputmode="numeric">
+            <span class="aide">Pause après chaque pack, avant le suivant.</span></label>
+          <label class="champ"><span class="etiquette">Destinataires par mail (Cci)</span><input id="p-dest" type="number" min="1" max="495" inputmode="numeric">
+            <span class="aide" id="p-dest-aide">495 au plus.</span></label>
+          <label class="champ"><span class="etiquette">Maximum de destinataires par jour</span><input id="p-max" type="number" min="1" max="9995" inputmode="numeric">
+            <span class="aide" id="p-max-aide">Le plafond de votre messagerie.</span></label>
+          <div class="champ"><span class="etiquette">Plage horaire</span>
+            <div class="plage"><input id="p-debut" type="number" min="0" max="23" inputmode="numeric" aria-label="Heure de début"><span>h à</span>
+              <input id="p-fin" type="number" min="1" max="24" inputmode="numeric" aria-label="Heure de fin"><span>h</span></div>
+            <span class="aide">Aucun envoi en dehors de ces heures.</span></div>
+        </div>
+        <p class="capacite" id="capacite"></p>
+        <p class="attention" id="alerte-param" hidden></p>
+      </div>
+      <div class="carte">
+        <h2>Compte</h2>
+        <div class="ligne-compte"><span><span id="p-email"></span> <span class="badge" id="p-role"></span></span>
+          <button class="btn secondaire" id="deconnexion">Se déconnecter</button></div>
+        <p class="aide" id="p-outlook"></p>
+        <button class="btn secondaire" id="p-admin" type="button" hidden>Administration<span class="pastille-alerte" id="p-admin-badge" hidden></span></button>
+      </div>
+      <div class="carte">
+        <h2>Appareils connectés</h2>
+        <ul class="appareils" id="appareils"></ul>
+        <div class="ligne-compte">
+          <button class="lien" id="fermer-autres" type="button">Déconnecter les autres appareils</button>
+          <button class="lien danger" id="retirer-outlook" type="button">Retirer l'accès à Outlook</button>
+        </div>
+      </div>
+      <div class="pied">
+        <button class="btn secondaire" id="retour-parametres">Retour</button>
+        <button class="btn principal" id="enregistrer-parametres">Enregistrer</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Connexion en direct : la vraie page Microsoft, affichée depuis le serveur -->
+  <div class="direct" id="direct" hidden role="dialog" aria-modal="true" aria-label="Connexion à votre messagerie">
+    <div class="direct-barre">
+      <span class="direct-titre"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Z"/></svg>
+        <span id="direct-nom">Connexion Microsoft</span></span>
+      <span class="direct-actions">
+        <button class="direct-coller" id="direct-coller" type="button" aria-label="Coller le texte copié dans le champ">
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 4h6v3H9zM9 5.5H6.5A1.5 1.5 0 0 0 5 7v12.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V7a1.5 1.5 0 0 0-1.5-1.5H15"/></svg>
+          Coller</button>
+        <button class="lien" id="direct-fermer" type="button">Annuler</button>
+      </span>
+    </div>
+    <div class="direct-zone" id="direct-zone">
+      <img id="direct-ecran" alt="Page de connexion de votre messagerie" draggable="false">
+      <form id="direct-champ" class="direct-champ" hidden autocomplete="on" onsubmit="return false">
+        <input id="direct-texte" type="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Champ de la page">
+      </form>
+      <div class="direct-attente" id="direct-attente">
+        <span class="rond" id="direct-rond"></span>
+        <span id="direct-attente-texte">Ouverture de la page Microsoft…</span>
+        <button class="btn principal" id="direct-reessayer" type="button" hidden>Réessayer</button>
+      </div>
+    </div>
+    <input id="direct-saisie" class="direct-saisie" type="text" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" aria-label="Saisie">
+  </div>
+
+  <!-- Tester l'envoi : à tout moment, depuis n'importe quel écran -->
+  <div class="feuille" id="feuille-test" hidden>
+    <div class="feuille-contenu formulaire" role="dialog" aria-modal="true" aria-labelledby="titre-test">
+      <h2 id="titre-test">Tester l'envoi</h2>
+      <p class="aide">Le message part de votre Outlook vers votre propre adresse, avec « [Test] » dans l'objet. Rien n'est envoyé aux élèves.</p>
+      <label class="champ"><span class="etiquette">Objet</span><input id="t-objet" type="text"></label>
+      <label class="champ"><span class="etiquette">Message</span><textarea id="t-message" rows="6"></textarea></label>
+      <p class="aide" id="t-etat" aria-live="polite"></p>
+      <div class="pied">
+        <button class="btn secondaire" id="t-fermer" type="button">Fermer</button>
+        <button class="btn principal" id="t-envoyer" type="button">M'envoyer le test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Les personnes exclues par le tri : on peut en ajouter -->
+  <div class="feuille" id="feuille-exclus" hidden>
+    <div class="feuille-contenu feuille-large" role="dialog" aria-modal="true" aria-labelledby="titre-exclus">
+      <div class="feuille-tete"><h2 id="titre-exclus">Personnes exclues</h2><button class="lien" id="x-fermer" type="button">Fermer</button></div>
+      <p class="aide">Le tri les a classées hors élèves, avec la raison. Si vous reconnaissez des élèves, ajoutez-les : ils passent dans « À envoyer ».</p>
+      <div class="puces-exclus" id="x-filtres"></div>
+      <ul class="liste liste-exclus" id="x-liste" aria-live="polite"></ul>
+      <div class="pied">
+        <button class="btn secondaire" id="x-plus" type="button" hidden>Afficher plus</button>
+        <button class="btn principal" id="x-tous" type="button" hidden>Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Installation sur iPhone / Safari (pas de bouton automatique) -->
+  <div class="feuille" id="feuille-ios" hidden>
+    <div class="feuille-contenu" role="dialog" aria-labelledby="titre-installer">
+      <h2 id="titre-installer">Installer Smart Mail</h2>
+      <ol>
+        <li>Touchez <b>Partager</b> dans la barre de Safari.</li>
+        <li>Choisissez <b>Sur l'écran d'accueil</b>.</li>
+        <li>Confirmez avec <b>Ajouter</b>.</li>
+      </ol>
+      <button class="btn principal large" id="fermer-feuille">Fermer</button>
+    </div>
+  </div>
+
+  <script src="app.js?v=45"></script>
+</body>
+</html>

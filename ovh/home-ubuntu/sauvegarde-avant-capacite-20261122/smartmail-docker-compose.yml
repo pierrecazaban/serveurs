@@ -1,0 +1,40 @@
+# Smart Mail sur le VPS : l'application + Caddy (HTTPS automatique, indispensable
+# pour installer l'app sur téléphone et ordinateur).
+services:
+  smartmail:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    # /data garde la base : comptes, sessions des appareils et sessions Outlook (chiffrées).
+    volumes:
+      - donnees:/data
+    shm_size: "512mb"  # Chromium (connexion à Outlook web) a besoin de mémoire partagée
+    # À l'arrêt (mise à jour), chaque recherche ou envoi range sa mémoire avant de
+    # s'arrêter ; ils reprennent au redémarrage. Il leur faut plus que 10 s.
+    stop_grace_period: 60s
+    expose:
+      - "8000"
+    # 12/11 : depuis l'Amérique du Nord, l'adresse normale d'Outlook ne répond plus (serveurs
+    # Microsoft en panne) ; ces serveurs européens d'Outlook répondent. À retirer quand c'est réparé.
+    extra_hosts:
+      - "outlook.office.com:40.101.69.210"
+      - "outlook.office365.com:40.101.69.210"
+      - "outlook.cloud.microsoft:40.101.69.210"
+      - "substrate.office.com:40.101.69.210"
+      - "attachments.office.net:40.99.220.194"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAINE=${DOMAINE}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-donnees:/data
+    depends_on:
+      - smartmail
+volumes:
+  donnees:
+  caddy-donnees:

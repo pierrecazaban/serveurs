@@ -1,0 +1,13 @@
+[Unit]
+Description=Smart Mail : relais SOCKS vers Hostinger (Paris) pour SMTP/IMAP des écoles
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+ExecStart=/usr/bin/ssh -N -i /home/ubuntu/.ssh/relais_ecoles -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o GatewayPorts=yes -D 172.18.0.1:1080 relais@2.25.7.244
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

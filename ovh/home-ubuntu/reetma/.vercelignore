@@ -1,0 +1,15 @@
+node_modules
+dist
+.lovable
+*.command
+bun.lock
+bun.lockb
+deploy-log.txt
+.build-check.tgz
+
+.secrets.local
+.vercel
+deploy-log.txt
+*.command
+.env.local
+github-log.txt

@@ -1,0 +1,16 @@
+# Reetma on the VPS, next to Smart Mail: its Caddy (smartmail/deploiement) serves HTTPS and forwards
+# reetma-agency.com to this container on their shared network (deploiement_default).
+services:
+  reetma:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "3000"
+    networks:
+      default:
+        aliases: [reetma]
+networks:
+  default:
+    name: deploiement_default
+    external: true

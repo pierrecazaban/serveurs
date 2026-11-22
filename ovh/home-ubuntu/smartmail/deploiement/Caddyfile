@@ -1,0 +1,13 @@
+{$DOMAINE} {
+	encode zstd gzip
+	reverse_proxy smartmail:8000
+}
+
+# Site Reetma (projet reetma-site, dossier deploy/), sur le même réseau Docker
+reetma-agency.com {
+	encode zstd gzip
+	reverse_proxy reetma:3000
+}
+www.reetma-agency.com {
+	redir https://reetma-agency.com{uri} permanent
+}

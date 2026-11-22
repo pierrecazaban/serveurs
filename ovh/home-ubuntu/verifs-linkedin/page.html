@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérif LinkedIn</title>
+<style>
+:root { --fond:#f6f5f1; --carte:#fff; --texte:#1c1f2a; --doux:#6b6f7b; --ligne:#e4e2dc; --accent:#1f3a5f;
+  --etu:#1f7a4d; --etu-f:#e6f4ec; --alu:#8a5a00; --alu-f:#fbf0dc; --ps:#5b5f6b; --ps-f:#eeeef1; }
+@media (prefers-color-scheme: dark) { :root { --fond:#14161c; --carte:#1d2029; --texte:#e9eaee; --doux:#9a9eab; --ligne:#2d313c;
+  --accent:#8fb3e0; --etu:#6fd19e; --etu-f:#173225; --alu:#f0bf62; --alu-f:#33280f; --ps:#b4b8c4; --ps-f:#272a33; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fond); color:var(--texte); font:15px/1.45 -apple-system, system-ui, sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.sous { color:var(--doux); margin:0 0 20px; }
+.barre { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--carte); border:1px solid var(--ligne);
+  border-radius:12px; padding:14px; }
+select, input { font:inherit; padding:8px 10px; border:1px solid var(--ligne); border-radius:8px; background:var(--fond); color:var(--texte); }
+input[type=number] { width:90px; }
+button { font:inherit; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--accent); cursor:pointer;
+  background:var(--accent); color:var(--carte); }
+button.sec { background:transparent; color:var(--accent); }
+button:disabled { opacity:.45; cursor:default; }
+.etat { margin:14px 2px 6px; color:var(--doux); min-height:21px; }
+.prog { height:6px; background:var(--ligne); border-radius:3px; overflow:hidden; }
+.prog div { height:100%; width:0; background:var(--accent); transition:width .4s; }
+.totaux { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0 10px; }
+.tot { border-radius:12px; padding:12px 14px; }
+.tot b { display:block; font-size:28px; line-height:1.1; }
+.etu { background:var(--etu-f); color:var(--etu); } .alu { background:var(--alu-f); color:var(--alu); } .ps { background:var(--ps-f); color:var(--ps); }
+.cols { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; align-items:start; }
+.col { background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:6px 12px; }
+.item { padding:9px 0; border-bottom:1px solid var(--ligne); }
+.item:last-child { border-bottom:0; }
+.item .n { font-weight:600; }
+.item .n a { color:inherit; }
+.item .d { color:var(--doux); font-size:13px; }
+.recu { font-size:11px; font-weight:600; padding:1px 6px; border-radius:6px; background:var(--ps-f); color:var(--ps); margin-left:4px; }
+.vide { color:var(--doux); font-size:13px; padding:10px 0; }
+.direct { margin-top:16px; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; }
+.encours { font-size:16px; }
+.pastille { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--accent); margin-right:8px;
+  animation:pulse 1s ease-in-out infinite; vertical-align:1px; }
+@keyframes pulse { 50% { opacity:.25; } }
+.avenir { color:var(--doux); font-size:13px; margin-top:6px; }
+.item.neuf { animation:arrive 2.5s ease-out; }
+.filtres { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin:0 0 10px; background:var(--carte);
+  border:1px solid var(--ligne); border-radius:12px; padding:10px 14px; }
+.filtres label { font-size:13px; font-weight:600; color:var(--doux); display:flex; gap:6px; align-items:center; }
+.filtres select { color:var(--texte); font-weight:400; min-width:150px; }
+.filtres[hidden] { display:none; }
+.puce { font:inherit; font-size:13px; font-weight:500; padding:5px 11px; border-radius:999px; border:1px solid var(--ligne);
+  background:var(--carte); color:var(--texte); cursor:pointer; }
+.puce.on { background:var(--etu); border-color:var(--etu); color:var(--carte); }
+.puce small { opacity:.7; margin-left:5px; }
+.an { display:inline-block; font-size:12px; font-weight:600; padding:1px 7px; border-radius:6px; background:var(--etu-f); color:var(--etu); margin:3px 0 1px; }
+.an.prob { background:transparent; border:1px dashed var(--etu); }
+@keyframes arrive { from { background:var(--etu-f); } to { background:transparent; } }
+@media (prefers-reduced-motion: reduce) { .pastille, .item.neuf { animation:none; } }
+@media (max-width:760px) { .cols, .totaux { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vérification LinkedIn</h1>
+  <p class="sous">Choisis l'école et le nombre de contacts : l'outil reprend la liste là où il s'est arrêté et classe chacun.</p>
+  <div class="barre">
+    <select id="ecole"></select>
+    <input id="nombre" type="number" min="1" value="20">
+    <button id="go">Vérifier</button>
+    <button id="stop" class="sec" disabled>Arrêter</button>
+    <button id="bomb" class="sec" title="Vérifie toute la liste en continu, sans s'arrêter, même quand ton Mac est éteint">Tout vérifier (pilote auto)</button>
+    <button id="comp" class="sec" title="Lit la formation des étudiants déjà trouvés pour calculer leur année">Compléter les années</button>
+    <span style="flex:1"></span>
+    <button id="cnx" class="sec">Se connecter à LinkedIn</button>
+    <button id="fin" hidden>J'ai fini</button>
+  </div>
+  <div class="etat" id="msg">Chargement…</div>
+  <div class="prog"><div id="bar"></div></div>
+  <div class="direct" id="direct" hidden>
+    <div class="encours"><span class="pastille"></span>En cours : <b id="actuel"></b></div>
+    <div class="avenir" id="avenir"></div>
+  </div>
+  <div class="totaux">
+    <div class="tot etu"><b id="t-etu">0</b>Étudiants</div>
+    <div class="tot alu"><b id="t-alu">0</b>Alumni</div>
+    <div class="tot ps"><b id="t-ps">0</b>Pas sûr</div>
+  </div>
+  <div class="filtres" id="filtres" hidden>
+    <label>Programme <select data-k="programme"></select></label>
+    <label>Année <select data-k="annee"></select></label>
+    <label>Promo <select data-k="promo"></select></label>
+    <button id="raz" class="sec">Tout afficher</button>
+  </div>
+  <div class="cols">
+    <div class="col" id="c-etu"></div>
+    <div class="col" id="c-alu"></div>
+    <div class="col" id="c-ps"></div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let ecole = 5, init = false, vus = null, dernier = null;
+const filtres = {programme: '', annee: '', promo: ''};
+const AXES = [['programme', 'Programme'], ['annee', 'Année'], ['promo', 'Promo']];
+const ORDRE_AN = ['1re année','2e année','3e année','4e année','5e année','Dernière année','Année unique','Césure / stage','Échange','Inconnue'];
+const val = (l, k) => l[k] || (k === 'promo' ? 'Inconnue' : k === 'annee' ? 'Inconnue' : 'Inconnu');
+const cleAn = l => [l.programme, l.annee, l.promo ? 'promo ' + l.promo : ''].filter(Boolean).join(' · ');
+try { ecole = +(localStorage.getItem('ecole') || 5); } catch (e) {}
+const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function item(l) {
+  const n = l.profil ? `<a href="${esc(l.profil)}" target="_blank" rel="noopener">${esc(l.nom)}</a>` : esc(l.nom);
+  return `<div class="item${vus && !vus.has(l.ordre) ? ' neuf' : ''}"><div class="n">${n}${l.deja_recu === 'oui' ? '<span class="recu">déjà reçu le mail</span>' : ''}</div>${l.classement === 'Étudiant' && l.annee ? `<span class="an${l.fiabilite === 'probable' ? ' prob' : ''}" title="${l.fiabilite === 'probable' ? 'probable' : 'sûr'}">${esc(cleAn(l))}${l.fiabilite === 'probable' ? ' ?' : ''}</span>` : ''}<div class="d">${l.programme_precis ? esc(l.programme_precis) + ' — ' : ''}${esc(l.detail)}</div></div>`;
+}
+async function maj() {
+  const r = await (await fetch('/etat?ecole=' + ecole)).json();
+  if (!init) {
+    $('ecole').innerHTML = Object.entries(r.ecoles).map(([k, v]) => `<option value="${k}" ${+k === ecole ? 'selected' : ''}>${v}</option>`).join('');
+    init = true;
+  }
+  const occ = r.actif || r.connexion;
+  $('bomb').textContent = r.bombardement ? 'Arrêter le pilote auto' : 'Tout vérifier (pilote auto)';
+  $('bomb').classList.toggle('sec', !r.bombardement);
+  $('go').disabled = occ || r.bombardement; $('comp').disabled = occ || r.bombardement; $('cnx').disabled = occ; $('cnx').hidden = r.connexion; $('fin').hidden = !r.connexion; $('stop').disabled = !r.actif; $('ecole').disabled = r.actif;
+  $('msg').textContent = r.message + `  ·  ${r.aujourdhui} vérifiés aujourd'hui`;
+  $('bar').style.width = r.total ? (100 * r.fait / r.total) + '%' : '0';
+  const g = {'Étudiant': [], 'Alumni': [], 'Pas sûr': []};
+  r.lignes.forEach(l => (g[l.classement] || g['Pas sûr']).push(l));
+  const sig = JSON.stringify(r.lignes) + JSON.stringify(filtres);
+  if (sig !== dernier) {
+    dernier = sig;
+    const garde = (l, sauf) => AXES.every(([k]) => k === sauf || !filtres[k] || val(l, k) === filtres[k]);
+    const tri = (k, a, b) => k === 'annee' ? ORDRE_AN.indexOf(a) - ORDRE_AN.indexOf(b) : (/^Inconn/.test(a) - /^Inconn/.test(b)) || a.localeCompare(b, 'fr');
+    $('filtres').hidden = !g['Étudiant'].length;
+    AXES.forEach(([k]) => {
+      const sel = document.querySelector(`#filtres select[data-k="${k}"]`);
+      const comptes = {};
+      g['Étudiant'].filter(l => garde(l, k)).forEach(l => { const v = val(l, k); comptes[v] = (comptes[v] || 0) + 1; });
+      if (filtres[k] && !comptes[filtres[k]]) comptes[filtres[k]] = 0;
+      const total = Object.values(comptes).reduce((a, b) => a + b, 0);
+      if (document.activeElement === sel) return;   // ne pas refermer le menu pendant qu'on choisit
+      sel.innerHTML = `<option value="">Tous (${total})</option>` + Object.keys(comptes).sort((a, b) => tri(k, a, b))
+        .map(v => `<option value="${esc(v)}">${esc(v)} (${comptes[v]})</option>`).join('');
+      sel.value = filtres[k];
+    });
+    const etu = g['Étudiant'].filter(l => garde(l, null));
+    [['etu', 'Étudiant', etu], ['alu', 'Alumni', g['Alumni']], ['ps', 'Pas sûr', g['Pas sûr']]].forEach(([k, c, liste]) => {
+      $('t-' + k).textContent = g[c].length;
+      $('c-' + k).innerHTML = liste.length ? liste.slice().reverse().map(item).join('') : '<div class="vide">Personne pour l\'instant.</div>';
+    });
+  }
+  vus = new Set(r.lignes.map(l => l.ordre));
+  $('direct').hidden = !(r.actif && r.file && r.file.length);
+  if (r.file && r.file.length) {
+    $('actuel').textContent = r.file[0];
+    $('avenir').textContent = r.file.length > 1 ? 'Ensuite : ' + r.file.slice(1).join(', ') + (r.total - r.fait > r.file.length ? '…' : '') : '';
+  }
+}
+async function post(url, body) {
+  const r = await fetch(url, {method: 'POST', body: JSON.stringify(body || {})});
+  return [r.status, await r.json()];
+}
+$('ecole').onchange = e => { ecole = +e.target.value; try { localStorage.setItem('ecole', ecole); } catch (x) {} maj(); };
+$('go').onclick = async () => {
+  const corps = {ecole, nombre: +$('nombre').value};
+  let [s, r] = await post('/verifier', corps);
+  if (s === 409 && r.forcable && confirm(r.erreur + '\n\nContinuer quand même ?')) [s, r] = await post('/verifier', {...corps, forcer: true});
+  else if (s === 409 && !r.forcable) alert(r.erreur);
+  maj();
+};
+$('stop').onclick = () => post('/stop').then(maj);
+$('bomb').onclick = async () => {
+  const r = await (await fetch('/etat?ecole=' + ecole)).json();
+  if (!r.bombardement && !confirm('Lancer la vérification de TOUTE la liste en continu (à pleine vitesse, sur le compte d\'Hippolyte) ?')) return;
+  await post('/bombardement', {ecole, actif: !r.bombardement}); maj();
+};
+$('comp').onclick = async () => { const [s, r] = await post('/completer', {ecole}); if (s === 409) alert(r.erreur); maj(); };
+$('filtres').onchange = e => { const k = e.target.dataset.k; if (!k) return; filtres[k] = e.target.value; e.target.blur(); dernier = null; maj(); };
+$('raz').onclick = () => { AXES.forEach(([k]) => filtres[k] = ''); dernier = null; maj(); };
+$('cnx').onclick = () => post('/connexion').then(maj);
+$('fin').onclick = () => post('/fin_connexion').then(() => setTimeout(maj, 1500));
+maj(); setInterval(maj, 1000);
+</script>
+</body>
+</html>

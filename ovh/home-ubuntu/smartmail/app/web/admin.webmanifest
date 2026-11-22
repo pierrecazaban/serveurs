@@ -1,0 +1,30 @@
+{
+  "name": "Console Smart Mail",
+  "short_name": "Console",
+  "description": "Toutes les sessions des ambassadeurs Smart Mail, en direct.",
+  "lang": "fr",
+  "id": "admin",
+  "start_url": "admin",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F7F8",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    {
+      "src": "icones/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icones/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icones/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

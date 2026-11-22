@@ -1,0 +1,38 @@
+# Accoste — serveur de mise en relation (hbbs) et relais (hbbr), basés sur rustdesk-server (AGPL-3.0)
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:1.1.16
+    container_name: accoste-hbbs
+    command: hbbs -r 158.69.232.131:21117 -k _
+    volumes:
+      - ./data:/root
+    network_mode: host
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 192m
+    memswap_limit: 192m
+  hbbr:
+    image: rustdesk/rustdesk-server:1.1.16
+    container_name: accoste-hbbr
+    command: hbbr -k _
+    volumes:
+      - ./data:/root
+    network_mode: host
+    environment:
+      - TOTAL_BANDWIDTH=400
+      - SINGLE_BANDWIDTH=16
+      - LIMIT_SPEED=8
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 192m
+    memswap_limit: 192m

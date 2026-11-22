@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="54 62 408 408" role="img" aria-label="Reetma">
+  <style>.r{fill:#305D55}@media (prefers-color-scheme:dark){.r{fill:#FBF7F0}}</style>
+  <path class="r" fill-rule="evenodd" d="M86 75H250C335 75 392 128 392 205C392 262 358 303 305 320L210 333H178V457H86ZM178 155H245C280 155 300 175 300 206C300 237 280 258 245 258H178Z"/>
+  <path class="r" d="M178 320L305 318L365 397L300 412L340 457H300L210 333H178Z"/>
+  <path fill="#F28A4B" d="M300 412L365 397L430 457H340Z"/>
+</svg>

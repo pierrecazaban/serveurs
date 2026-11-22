@@ -1,0 +1,22 @@
+# Outil de vérification LinkedIn sur le VPS Hostinger : son propre Chrome (écran virtuel + vue à distance),
+# liste copiée depuis l'OVH, parcourue depuis la fin (l'OVH part du début).
+# Réseau de l'hôte : l'interface (8765) et la vue à distance (6081) n'écoutent qu'en local, accès par tunnel SSH ;
+# le proxy 1080 est le tunnel inverse depuis le Mac, utilisé seulement pour se connecter à LinkedIn.
+services:
+  verifs:
+    build:
+      context: ..
+      dockerfile: deploiement/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    shm_size: 2gb
+    environment:
+      - VERIF_HOTE=127.0.0.1
+      - VERIF_LISTE=/data
+      - VERIF_SENS=desc
+      - VERIF_PROXY=socks5://127.0.0.1:1080
+      - VERIF_FACTEUR=50
+      - VERIF_CHROME_PROPRE=1
+      - VERIF_ONGLETS=6
+    volumes:
+      - ./data:/data

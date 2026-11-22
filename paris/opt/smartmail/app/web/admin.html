@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Console Smart Mail</title>
+  <meta name="description" content="Toutes les sessions des ambassadeurs Smart Mail, en direct.">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Console">
+  <script>window.BASE = location.pathname.indexOf("/tool") === 0 ? "/tool" : ""; if (BASE) document.write('<base href="/tool/">');</script>
+  <link rel="manifest" href="admin.webmanifest">
+  <link rel="icon" href="icones/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+  <link rel="stylesheet" href="admin.css?v=16">
+</head>
+<body>
+  <header class="barre">
+    <div class="barre-int">
+      <a class="marque" href="#ecrans" title="Écrans des ambassadeurs"><span class="mono">SM</span><span>Console</span></a>
+      <span class="direct" id="direct" role="status"><span class="point" aria-hidden="true"></span><span id="direct-texte">Connexion…</span></span>
+      <span class="code-jour" id="code-jour" hidden title="Code d’accès du jour à l’app (change à minuit)"></span>
+      <button class="icone" id="rafraichir" type="button" aria-label="Actualiser maintenant" data-icone="rafraichir"></button>
+      <button class="icone" id="deconnexion" type="button" aria-label="Se déconnecter" title="Se déconnecter" data-icone="sortir"></button>
+    </div>
+  </header>
+
+
+  <main class="contenu" id="contenu">
+    <!-- Écrans : l'application de chaque ambassadeur, telle qu'il la voit, avec tous ses boutons -->
+    <section class="vue vue-ecrans" id="v-ecrans" aria-labelledby="t-ecrans" hidden>
+      <h1 class="sr" id="t-ecrans">Écrans des ambassadeurs</h1>
+      <div class="ecrans">
+        <nav class="ecrans-liste" id="ecrans-liste" aria-label="Choisir l'écran d'un ambassadeur"></nav>
+        <div class="ecran-zone">
+          <div class="ecran-barre" id="ecran-barre">
+            <button class="icone" id="ecran-prec" type="button" aria-label="Écran précédent" data-icone="retour"></button>
+            <div class="ecran-qui"><strong id="ecran-nom">Écrans</strong><span id="ecran-etat"></span></div>
+            <button class="icone" id="ecran-suiv" type="button" aria-label="Écran suivant" data-icone="suite"></button>
+            <button class="icone programmer" id="ecran-programmer" type="button" aria-label="Programmer l'envoi (date et heure)" title="Programmer l'envoi" data-icone="calendrier"></button>
+            <button class="icone patrouille" id="patrouille" type="button" aria-pressed="false" aria-label="Patrouiller entre les écrans" data-icone="patrouille"></button>
+            <select class="champ delai" id="patrouille-delai" aria-label="Durée de chaque écran pendant la patrouille">
+              <option value="10">10 s</option><option value="20" selected>20 s</option><option value="40">40 s</option><option value="60">1 min</option>
+            </select>
+            <button class="icone ordi-seulement" id="ecran-format" type="button" aria-pressed="false" aria-label="Voir en format téléphone" data-icone="appareil"></button>
+            <button class="icone" id="ecran-recharger" type="button" aria-label="Recharger cet écran" data-icone="rafraichir"></button>
+          </div>
+          <div class="pilote-etapes" id="pilote-etapes" hidden aria-label="Pilote automatique"></div>
+          <div class="patrouille-avance" id="patrouille-avance" hidden><span></span></div>
+          <div class="session" id="session" aria-live="polite"></div>
+          <div class="ecran-cadre" id="ecran-cadre"><p class="vide ecran-vide" id="ecran-vide">Chargement des écrans…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vue d'ensemble -->
+    <section class="vue" id="v-ensemble" aria-labelledby="t-ensemble">
+      <h1 id="t-ensemble">Vue d'ensemble</h1>
+      <div class="sante" id="sante" aria-live="polite"></div>
+      <ul class="alertes" id="alertes"></ul>
+      <div class="kpis" id="kpis"></div>
+      <div class="carte">
+        <div class="carte-tete"><h2>En ce moment</h2><span class="aide" id="nb-direct"></span></div>
+        <ul class="lignes" id="en-direct"></ul>
+      </div>
+      <div class="carte" id="carte-pair" hidden>
+        <div class="carte-tete"><h2 id="pair-titre">Autre serveur</h2><span class="aide" id="pair-aide"></span></div>
+        <ul class="lignes" id="pair-lignes"></ul>
+        <div><button type="button" class="btn" id="pair-ouvrir">Ouvrir sa console</button></div>
+      </div>
+      <div class="carte">
+        <div class="carte-tete"><h2>Serveur</h2><span class="aide" id="demarre"></span></div>
+        <div class="jauges" id="jauges"></div>
+        <p class="ligne-ia" id="ligne-ia"></p>
+      </div>
+    </section>
+
+    <!-- Sessions : une fiche par ambassadeur -->
+    <section class="vue" id="v-sessions" aria-labelledby="t-sessions" hidden>
+      <h1 id="t-sessions">Sessions</h1>
+      <div class="filtres">
+        <input class="champ" type="search" id="cherche" placeholder="Rechercher un ambassadeur, une école…" aria-label="Rechercher un ambassadeur ou une école" autocomplete="off">
+        <div class="puces" id="puces" role="group" aria-label="Filtrer les sessions"></div>
+      </div>
+      <div class="fiches" id="fiches"></div>
+    </section>
+
+    <!-- Activité : le journal de tous les ambassadeurs -->
+    <section class="vue" id="v-activite" aria-labelledby="t-activite" hidden>
+      <h1 id="t-activite">Activité</h1>
+      <div class="puces" id="puces-fil" role="group" aria-label="Filtrer l'activité">
+        <button class="puce" type="button" data-problemes="0" aria-pressed="true">Tout</button>
+        <button class="puce" type="button" data-problemes="1" aria-pressed="false">Problèmes seulement</button>
+      </div>
+      <div id="fil"></div>
+      <button class="btn secondaire large" id="plus" type="button" hidden>Voir plus</button>
+    </section>
+
+    <!-- Membres : rôles, quotas, accès -->
+    <section class="vue" id="v-membres" aria-labelledby="t-membres" hidden>
+      <h1 id="t-membres">Membres</h1>
+      <p class="aide">Pour ajouter un ambassadeur, donnez-lui simplement l'adresse de l'application : son compte est créé à sa première connexion avec sa messagerie.</p>
+      <ul class="membres" id="membres"></ul>
+    </section>
+  </main>
+
+  <!-- Détail d'une session (plein écran sur téléphone, panneau sur ordinateur) -->
+  <div class="voile" id="voile" hidden></div>
+  <aside class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="d-titre" hidden>
+    <div class="detail-tete">
+      <button class="icone" id="fermer" type="button" aria-label="Retour" data-icone="retour"></button>
+      <div class="detail-qui"><h2 id="d-titre"></h2><p class="aide" id="d-sous"></p></div>
+    </div>
+    <div class="detail-corps" id="d-corps"></div>
+  </aside>
+
+  <!-- Pas de session administrateur ici -->
+  <div class="porte" id="porte" hidden>
+    <div class="carte porte-carte">
+      <span class="mono grand">SM</span>
+      <h1 id="porte-titre">Console Smart Mail</h1>
+      <p class="aide" id="porte-texte"></p>
+      <a class="btn principal" id="porte-lien" href="./#admin">Se connecter</a>
+    </div>
+  </div>
+
+  <div class="bulle" id="bulle" role="tooltip" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="admin.js?v=17"></script>
+</body>
+</html>
